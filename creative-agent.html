@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CREATIVE COMMAND — Strategy & Copy Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f0e8;
+    --cream: #ede8dc;
+    --ink: #1a1a1a;
+    --red: #c8392b;
+    --red-dim: #8a2520;
+    --gold: #c9a84c;
+    --gold-dim: #7a6430;
+    --grey: #3a3a3a;
+    --grey-light: #555;
+    --border: #2a2a2a;
+    --border-light: #3f3f3f;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --surface3: #242424;
+    --text-muted: #888;
+    --text-dim: #555;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--white);
+  }
+
+  .logo span {
+    color: var(--red);
+  }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* MAIN LAYOUT */
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* API KEY INPUT */
+  .api-section {
+    margin-bottom: 40px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  input[type="text"], input[type="password"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--gold);
+  }
+
+  input::placeholder { color: var(--text-dim); }
+
+  /* CONFIG GRID */
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+  }
+
+  .config-card label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  select:focus, textarea:focus { border-color: var(--gold); }
+  select option { background: var(--surface2); }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+  }
+
+  /* PLATFORM SELECTOR */
+  .platform-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .platform-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .platform-btn:hover { border-color: var(--border-light); color: var(--white); }
+
+  .platform-btn.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--white);
+  }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 1px dashed var(--border-light);
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 40px;
+    background: var(--surface);
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--gold);
+    background: var(--surface2);
+  }
+
+  .upload-zone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  .upload-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .upload-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+
+  .upload-success {
+    display: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-top: 10px;
+  }
+
+  /* RUN BUTTON */
+  .run-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .btn-run {
+    background: var(--red);
+    border: none;
+    color: var(--white);
+    padding: 16px 48px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-run:hover { background: #e04535; transform: translateY(-1px); }
+  .btn-run:active { transform: translateY(0); }
+  .btn-run:disabled { background: var(--grey); cursor: not-allowed; transform: none; opacity: 0.5; }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-muted);
+    padding: 10px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--white); color: var(--white); }
+
+  /* PROGRESS */
+  .progress-section {
+    display: none;
+    margin-bottom: 40px;
+  }
+
+  .progress-bar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    height: 3px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--red);
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .progress-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+
+  .progress-status .step-label {
+    color: var(--gold);
+  }
+
+  /* PIPELINE STEPS */
+  .pipeline-steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+  }
+
+  .pipeline-step {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .pipeline-step:last-child { border-right: 1px solid var(--border); }
+
+  .pipeline-step.active {
+    background: var(--surface2);
+    color: var(--gold);
+    border-color: var(--gold-dim);
+  }
+
+  .pipeline-step.done {
+    background: var(--surface);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+
+  .pipeline-step.done::before {
+    content: '✓ ';
+    color: var(--gold);
+  }
+
+  /* OUTPUT PANELS */
+  .output-section {
+    display: none;
+  }
+
+  .output-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--white);
+  }
+
+  .panel-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid;
+  }
+
+  .badge-strategy { color: var(--gold); border-color: var(--gold-dim); }
+  .badge-copy { color: var(--red); border-color: var(--red-dim); }
+  .badge-edit { color: #6ab8e0; border-color: #3a7a9a; }
+
+  .panel-body {
+    padding: 28px;
+  }
+
+  /* EDITABLE TEXTAREA — STRATEGY BRIEF */
+  .brief-editor {
+    background: var(--surface3);
+    border: 1px solid var(--border-light);
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    padding: 24px;
+    width: 100%;
+    min-height: 500px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .brief-editor:focus { border-color: var(--gold); }
+
+  .edit-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(106, 184, 224, 0.05);
+    border-left: 2px solid #6ab8e0;
+    margin-bottom: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #6ab8e0;
+  }
+
+  /* COPY OUTPUT */
+  .copy-output {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    padding: 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--cream);
+    white-space: pre-wrap;
+    min-height: 200px;
+  }
+
+  /* Formatted output styles */
+  .copy-output h1, .copy-output h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 3px;
+    color: var(--white);
+    margin-top: 28px;
+    margin-bottom: 12px;
+  }
+
+  .copy-output h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  .copy-output strong {
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  .copy-output em {
+    color: var(--text-muted);
+    font-style: normal;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 40px 0;
+  }
+
+  /* PANEL ACTIONS */
+  .panel-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    flex-wrap: wrap;
+  }
+
+  .btn-action {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-muted);
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-action:hover { color: var(--white); border-color: var(--white); }
+
+  .btn-action.primary {
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--white);
+  }
+
+  .btn-action.primary:hover { background: #e04535; }
+
+  /* ERROR */
+  .error-box {
+    display: none;
+    background: rgba(200, 57, 43, 0.1);
+    border: 1px solid var(--red-dim);
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+  }
+
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  /* PULSE */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+  /* RENDERED OUTPUT */
+  .rendered-output {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--cream);
+  }
+
+  .rendered-output h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--white);
+    margin: 28px 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rendered-output h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin: 24px 0 8px;
+  }
+
+  .rendered-output h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 20px 0 6px;
+  }
+
+  .rendered-output p { margin-bottom: 12px; }
+
+  .rendered-output strong { color: var(--white); font-weight: 500; }
+
+  .rendered-output hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  .rendered-output ul, .rendered-output ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+
+  .rendered-output li { margin-bottom: 6px; }
+
+  .rendered-output blockquote {
+    border-left: 3px solid var(--red);
+    padding: 8px 16px;
+    margin: 16px 0;
+    background: rgba(200, 57, 43, 0.05);
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* TOOLTIP */
+  .tip {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--grey-light); }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .app { padding: 20px; }
+    header { padding: 16px 20px; }
+    .config-grid { grid-template-columns: 1fr; }
+    .pipeline-steps { flex-direction: column; }
+    .pipeline-step { border-right: 1px solid var(--border); border-bottom: none; }
+    .pipeline-step:last-child { border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CREATIVE <span>COMMAND</span></div>
+  <div class="logo-sub">Strategy + Copy Agent // v1.0</div>
+</header>
+
+<div class="app">
+
+  <!-- API KEY — saved in browser localStorage, never in the file -->
+  <div class="api-section" id="apiSection">
+    <div class="section-label">Anthropic API Key</div>
+    <div class="input-row" style="display:flex;gap:12px;align-items:center">
+      <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" style="background:var(--surface);border:1px solid var(--border);color:var(--white);padding:12px 16px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;outline:none;transition:border-color 0.2s;flex:1" />
+      <button onclick="saveKey()" style="background:var(--gold);border:none;color:var(--black);padding:12px 24px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;white-space:nowrap">SAVE KEY</button>
+      <button onclick="clearKey()" style="background:transparent;border:1px solid var(--border-light);color:var(--text-muted);padding:12px 20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer">CLEAR</button>
+    </div>
+    <div id="keyStatus" class="tip" style="margin-top:8px"></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="config-grid">
+
+    <div class="config-card">
+      <label>Brand / Product Context <span style="color:var(--text-dim)">(optional — paste brief notes)</span></label>
+      <textarea id="brandContext" placeholder="e.g. Supplement brand targeting men 35-55. Product: Tongkat Ali extract. Core mechanism: natural testosterone support. Key differentiator: pharmaceutical-grade extraction..." rows="5"></textarea>
+    </div>
+
+    <div class="config-card">
+      <label>Ad Platform</label>
+      <div class="platform-grid" id="platformGrid">
+        <div class="platform-btn active" data-platform="Facebook / Instagram">FB / IG</div>
+        <div class="platform-btn" data-platform="TikTok">TikTok</div>
+        <div class="platform-btn" data-platform="YouTube">YouTube</div>
+        <div class="platform-btn" data-platform="Email">Email</div>
+      </div>
+      <div class="tip" style="margin-top:12px">Select all that apply. FB/IG is default.</div>
+
+      <label style="margin-top:20px">Number of Ad Concepts</label>
+      <select id="adCount">
+        <option value="3">3 concepts</option>
+        <option value="5" selected>5 concepts</option>
+        <option value="8">8 concepts</option>
+        <option value="10">10 concepts</option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="section-label">Research Input</div>
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".html,.htm,.pdf,.txt,.md,.doc,.docx" />
+    <div class="upload-icon">⬆</div>
+    <div class="upload-title">DROP RESEARCH FILE HERE</div>
+    <div class="upload-sub">HTML · PDF · TXT · MD · DOC · DOCX &nbsp;·&nbsp; Or click to browse</div>
+    <div class="upload-success" id="uploadSuccess"></div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- RUN -->
+  <div class="run-section">
+    <button class="btn-run" id="runBtn" onclick="runPipeline()">RUN PIPELINE</button>
+    <button class="btn-secondary" onclick="resetAll()">RESET</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-section" id="progressSection">
+    <div class="pipeline-steps">
+      <div class="pipeline-step" id="step-read">01 · Read</div>
+      <div class="pipeline-step" id="step-strategy">02 · Strategy</div>
+      <div class="pipeline-step" id="step-edit">03 · Edit Brief</div>
+      <div class="pipeline-step" id="step-copy">04 · Copy</div>
+      <div class="pipeline-step" id="step-done">05 · Done</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="progress-status" id="progressStatus">Initializing...</div>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div class="output-section" id="outputSection">
+
+    <!-- STRATEGY BRIEF -->
+    <div class="output-panel" id="strategyPanel">
+      <div class="panel-header">
+        <div class="panel-title">STRATEGY BRIEF</div>
+        <div class="panel-badge badge-strategy">Creative Strategist</div>
+      </div>
+      <div class="panel-body">
+        <div class="edit-notice">✎ &nbsp; Edit this brief before the Copywriter runs. Your changes are the brief.</div>
+        <textarea class="brief-editor" id="strategyBrief"></textarea>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-action primary" onclick="runCopywriter()">SEND TO COPYWRITER →</button>
+        <button class="btn-action" onclick="downloadText('strategyBrief', 'strategy-brief.txt')">DOWNLOAD BRIEF</button>
+        <button class="btn-action" onclick="copyToClipboard('strategyBrief')">COPY TEXT</button>
+      </div>
+    </div>
+
+    <!-- COPY OUTPUT -->
+    <div class="output-panel" id="copyPanel" style="display:none">
+      <div class="panel-header">
+        <div class="panel-title">AD COPY PACK</div>
+        <div class="panel-badge badge-copy">Copywriter</div>
+      </div>
+      <div class="panel-body" id="copyBody">
+        <div class="rendered-output" id="copyRendered"></div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-action primary" onclick="downloadRendered()">DOWNLOAD COPY PACK</button>
+        <button class="btn-action" onclick="copyRenderedToClipboard()">COPY ALL TEXT</button>
+        <button class="btn-action" onclick="runCopywriterAgain()">REGENERATE COPY</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ─── API KEY — localStorage ───────────────────────────────────────────────────
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    showKeyStatus('Invalid key — must start with sk-ant-', 'var(--red)');
+    return;
+  }
+  localStorage.setItem('cc_api_key', key);
+  document.getElementById('apiKey').value = '';
+  showKeyStatus('✓ Key saved. You won\'t need to enter it again.', 'var(--gold)');
+}
+
+function clearKey() {
+  localStorage.removeItem('cc_api_key');
+  document.getElementById('apiKey').value = '';
+  showKeyStatus('Key cleared.', 'var(--text-muted)');
+}
+
+function getKey() {
+  return localStorage.getItem('cc_api_key') || document.getElementById('apiKey').value.trim();
+}
+
+function showKeyStatus(msg, color) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+// Auto-load key status on page open
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('cc_api_key');
+  if (saved) {
+    showKeyStatus('✓ API key loaded from saved session.', 'var(--gold)');
+  } else {
+    showKeyStatus('Enter your Anthropic API key once and click Save — it stays in your browser.', 'var(--text-dim)');
+  }
+});
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let uploadedContent = '';
+let uploadedFileName = '';
+let selectedPlatforms = ['Facebook / Instagram'];
+let rawCopyText = '';
+
+// ─── PLATFORM SELECTOR ───────────────────────────────────────────────────────
+document.querySelectorAll('.platform-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const platform = btn.dataset.platform;
+    if (btn.classList.contains('active')) {
+      if (selectedPlatforms.length > 1) {
+        btn.classList.remove('active');
+        selectedPlatforms = selectedPlatforms.filter(p => p !== platform);
+      }
+    } else {
+      btn.classList.add('active');
+      selectedPlatforms.push(platform);
+    }
+  });
+});
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  uploadedFileName = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'pdf') {
+    showError('PDF upload detected. For best results, open the PDF, select all text (Ctrl+A), paste into a .txt file, and upload that. Or paste text directly into the Brand Context field.');
+    return;
+  }
+
+  const text = await file.text();
+  if (ext === 'html' || ext === 'htm') {
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    // Remove scripts and styles
+    doc.querySelectorAll('script, style, nav, header, footer').forEach(el => el.remove());
+    uploadedContent = doc.body ? doc.body.innerText : text;
+  } else {
+    uploadedContent = text;
+  }
+
+  // Truncate if huge
+  if (uploadedContent.length > 80000) {
+    uploadedContent = uploadedContent.substring(0, 80000) + '\n\n[TRUNCATED — document was very long]';
+  }
+
+  document.getElementById('uploadSuccess').style.display = 'block';
+  document.getElementById('uploadSuccess').textContent = `✓ ${file.name} loaded — ${Math.round(uploadedContent.length / 1000)}k characters`;
+  hideError();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = '⚠ ' + msg;
+  box.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('errorBox').style.display = 'none';
+}
+function setProgress(pct, label) {
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressStatus').innerHTML =
+    `<span class="spinner"></span><span class="step-label">${label}</span>`;
+}
+function setStep(stepId, state) {
+  const el = document.getElementById('step-' + stepId);
+  if (!el) return;
+  el.classList.remove('active', 'done');
+  if (state) el.classList.add(state);
+}
+
+// ─── SYSTEM PROMPTS ───────────────────────────────────────────────────────────
+
+const STRATEGIST_SYSTEM = `You are a world-class creative strategist specializing in direct-response advertising for supplement and health brands. You have studied thousands of winning and losing ads. You are opinionated, pattern-recognizing, and you make hard calls. You operate from the EVOLVE framework combined with Eugene Schwartz's foundational principles.
+
+YOUR SINGLE JOB: Read the research. Interrogate it. Produce a precise Creative Strategy Brief with clear directives — not a buffet of options. The copywriter needs to know exactly what to do and why.
+
+---
+
+CORE STRATEGIC BELIEFS:
+- Nobody cares about the brand, the product, or its features. They only care about themselves. Frame everything through THEIR lens.
+- The best angle is almost never the most obvious one. If every competitor is running the same message, that lane is dead.
+- You don't create desire. You channel desire that already exists. (Schwartz)
+- The mechanism is more persuasive than the claim. "Increases testosterone" is noise. A specific named biological process creates curiosity and belief.
+- Specificity always beats generality. Real numbers, real scenarios, exact customer language.
+- The avatar's private fear or secret shame is almost always more powerful than their stated desire.
+- "The Power of Your Copy Is In Direct Proportion To The Depth of Your Research." (Schwartz)
+- CATEGORIZATION = DEATH. Never position a product as "like X but Y." That categorizes you as an alternative. Own a new category through a unique mechanism.
+
+---
+
+THE VALENCE + INTENSITY MODEL (Sarah Levinger — diagnose emotional misfires):
+Most ads that have the offer, the copy, and the hook but still don't convert fail because of ONE thing: emotional tone mismatch. The audience is emotionally elsewhere and the ad isn't meeting them there. You don't need a new hook. You need to match the emotional temperature of the ad to what the customer is feeling RIGHT NOW.
+
+VALENCE = What emotion (positive vs. negative)
+INTENSITY = How strongly (whisper vs. scream)
+
+The Four Zones:
+- Zone 1: High Valence + Low Intensity — Calm, cozy, supportive. "A sigh of relief they didn't know they needed." Wellness, belonging, safety.
+- Zone 2: High Valence + High Intensity — Hype, pride, thrill. "The reader is unstoppable." Product launches, transformation moments.
+- Zone 3: Low Valence + Low Intensity — Quiet ache, soft frustration. "A truth they've been avoiding." Good for thoughtful buyers, problem-aware audiences.
+- Zone 4: Low Valence + High Intensity — Fear, urgency, scarcity. "They're about to make a mistake." Use carefully — can backfire.
+
+In the Strategy Brief, the Strategist MUST specify:
+(1) What emotional zone is this audience currently in when they encounter an ad?
+(2) What emotional zone should the recommended creative target?
+(3) Why is that zone right for this market moment and sophistication level?
+
+---
+
+THE 9 PSYCHOLOGICAL HEURISTICS (Sarah Levinger — the brain's buying shortcuts):
+Buying decisions happen in the subconscious (11 million bits/second), not the conscious mind (40 bits/second). Good ads talk to the subconscious. Stack 2-3 of these in every recommended angle:
+1. SCARCITY — If it's about to be gone, we want it more. Quantity limits outperform time limits.
+2. SOCIAL PROOF — If others like it, it must be good. Show the people behind the proof, not just stars.
+3. AUTHORITY BIAS — We trust perceived experts. Choose authority that fits THIS specific audience — they may not trust traditional experts.
+4. EFFECT HEURISTIC — If it feels good, it must be good. Sell the feeling, not the feature. The faster they feel something, the faster they'll buy.
+5. PROCESSING FLUENCY — Simple = safe. Complicated = risky. If a 7-year-old can't understand in 3 seconds, it needs simplifying.
+6. TEMPORAL DISCOUNTING — The brain craves instant rewards. Later feels uncertain. Now feels good. "Right now" beats "someday."
+7. SALIENCE BIAS — Whatever stands out gets attention. In a sea of supplement ads, be the red balloon. Novelty and contrast force a pause.
+8. GOAL GRADIENT EFFECT — The closer to the finish line, the faster we move. Show the audience they're already partway there.
+9. FRAMING EFFECT — Same facts, different frame = different decision. Break big numbers into daily actions. Cost per use, not sticker price.
+
+The Strategist must identify which 2-3 heuristics are most powerful for this specific avatar and direct the Copywriter to lean on those.
+
+---
+
+THE EVOLVE CONCEPT vs. ANGLE DISTINCTION (critical):
+- CONCEPT = Your test strategy. What you're testing. Internally focused. ("I want to test a video version", "I want to test before/after")
+- ANGLE = How you choose to sell the product. The customer's reason to buy. Externally focused.
+- A concept without a defined angle is incomplete. Every brief must specify the angle — the specific reason someone should buy.
+- BAD angle examples: "Us vs. Them", "Before & After", "Problem-Aware Ads" — these are concepts, not angles.
+- GOOD angle examples: "Stops you from snapping at people", "Brings back your energy by 3pm", "Eliminates the enzyme destroying your appetite hormone" — these give the customer a reason to buy.
+- Angles exist on a spectrum from broad to specific. Specific angles (from specific sub-avatars) are almost always stronger.
+
+---
+
+SUB-AVATAR THINKING:
+Don't just identify a core avatar. Break them into sub-avatars based on their most specific, painful, or actionable attribute. The most specific sub-avatar almost always holds the strongest angle. Ask:
+- What is this person's single most painful daily experience?
+- What would they never admit to publicly but feel privately?
+- What have they already tried and failed with?
+- What's the specific moment they feel this problem most acutely?
+- What would make them feel embarrassed, ashamed, or defeated?
+
+---
+
+EUGENE SCHWARTZ AWARENESS LEVELS (match ad entry point to this):
+1. UNAWARE — Doesn't know they have the problem. Hook: stories, curiosity, facts
+2. PROBLEM AWARE — Knows the problem, not the solution. Hook: name the pain, benefits of solving
+3. SOLUTION AWARE — Knows solutions exist, not yours. Hook: introduce your unique mechanism
+4. PRODUCT AWARE — Knows your product, not convinced. Hook: proof that the product works
+5. MOST AWARE — Ready to buy. Hook: offer, pricing, urgency
+
+For Facebook/Instagram cold traffic: Target Problem-Aware or Solution-Aware ONLY.
+Copy length rule: The less they know, the more you must teach, the longer the copy.
+
+---
+
+MARKET SOPHISTICATION STAGES (Schwartz — determines angle strategy):
+1. First to market — direct claim works
+2. Me-too competitors emerge — bigger/better claims needed
+3. Claims are saturated — mechanism becomes the differentiator
+4. Mechanisms are saturated — identification, belief shift, new story needed
+5. Fully saturated — new avatar, lifestyle positioning, or radical repositioning
+
+IDENTITY SELLING (Schwartz — Stage 4-5 markets):
+At high sophistication, people stop buying products. They buy identity. The product becomes a symbol of who they are or who they're becoming. This is why cigarette ads sold freedom and masculinity, not nicotine. In supplement marketing, this means the ad is no longer about what the product does — it's about what kind of man takes it. The avatar isn't buying testosterone support. He's reclaiming his identity as someone who doesn't accept decline. When the Strategist identifies a Stage 4-5 market, the angle MUST shift from mechanism to identity — who does this person become by using this product?
+
+Most supplement markets in 2024-2025 are Stage 3-4. Mechanism-led and identity-led angles dominate.
+
+---
+
+THE HORMOZI VALUE EQUATION (use to stress-test angles):
+Value = (Dream Outcome × Perceived Likelihood of Achievement) / (Time Delay × Effort & Sacrifice)
+The strongest angles maximize dream outcome + likelihood while minimizing time and effort.
+Ask: Does this angle score high on all four? Where is it weak?
+
+---
+
+THE BIG 4 EMOTIONAL FRAMES (check every angle against these):
+- NEW / ONLY: "Is this new? Or is it the same old thing I've already tried?"
+- EASY / ANYBODY: "Can I actually do this? Is it hard?"
+- SAFE / PREDICTABLE: "What if I try this and it doesn't work for me?"
+- BIG / FAST: "Will this actually change my life, or just make a small difference?"
+Strong copy hits 2-3 of these powerfully. Forcing all four produces listy, weak copy.
+
+---
+
+THE FOUR KEY FRAMES TO APPLY:
+- NEW/ONLY: Position as the FIRST thing that does X — never "like X but Y"
+- EASY/ANYBODY: This is simple, accessible, no lifestyle overhaul required
+- SAFE/PREDICTABLE: Proof, social validation, risk reversal
+- BIG/FAST: Significant results, specific timeline
+
+---
+
+OUTPUT FORMAT — produce this exact Creative Strategy Brief:
+
+# CREATIVE STRATEGY BRIEF
+
+## 1. MARKET READING
+Sophistication Stage (1-5) and justification. What are competitors saying? What's already saturated? What's the white space? What category positioning trap must we avoid?
+
+## 2. SUB-AVATAR BREAKDOWN
+Identify 2-3 sub-avatars ranked by emotional intensity. For the strongest one: What is their single most painful daily moment? What do they believe privately that they'd never say publicly? What have they tried and failed with? What do they tell themselves about why nothing works?
+
+## 3. EMOTIONAL ZONE MAPPING (Valence + Intensity)
+Where is this audience right now emotionally? (Zone 1-4)
+What emotional zone should the creative target? Why?
+Which 2-3 psychological heuristics are most powerful for this avatar? Direct the Copywriter to use them.
+
+## 4. AWARENESS ENTRY POINT
+What level (1-5) do we enter at for the specified platform(s)? Justify. What does the audience need to believe BEFORE we can sell them anything? What existing belief can we channel?
+
+## 4. THE CORE TENSION (one sentence)
+The exact psychological gap between where they are and where they desperately want to be. This is the engine everything runs on.
+
+## 5. TOP 3 ANGLES (ranked by strength)
+For each:
+- Angle name (actionable — gives a reason to buy)
+- The specific sub-avatar this targets
+- The insight from research that makes this work
+- Why this cuts through current market noise
+- Which Big 4 frames it hits strongest
+- Hormozi Value Equation score (where does it win/lose?)
+- The emotional entry point
+- Risk or weakness to watch for
+
+## 6. REJECTED ANGLES & WHY
+What angles were considered and rejected? This prevents the copywriter from backsliding into weaker territory.
+
+## 7. MECHANISM DIRECTIVE
+What specific mechanism must the copy lean on? Name it. How should it be framed to create NEW HOPE without categorizing the product? How does it avoid "like X but Y" positioning?
+
+## 8. VOICE & TONE MANDATE
+Exact tone required. Specific examples of language that fits and language that kills it. What competitor voice are we deliberately not sounding like? What reading level? (Target: 5th-6th grade spoken language)
+
+## 9. CUSTOMER LANGUAGE EXTRACTION
+Pull the most powerful verbatim phrases, words, and expressions from the research that the copywriter should use or mirror. Exact language customers use to describe their problem. Niche-specific keywords.
+
+## 10. PLATFORM DIRECTIVES
+For each selected platform:
+- Recommended ad format (static image, video, UGC style)
+- What the first 1-2 seconds must accomplish
+- Hook style that fits platform native behavior
+- Any platform-specific constraints
+
+## 11. TESTING PRIORITY
+Which angle and which sub-avatar to test first. What to test second if the first doesn't hit. How many concepts to launch in the first batch.
+
+---
+Make hard calls. Be specific. No vague recommendations. The copywriter does not need options — they need a directive.`;
+
+
+const COPYWRITER_SYSTEM = `You are a world-class direct-response copywriter specializing in supplement and health products. You have written copy that has generated millions in revenue. You are not a brand copywriter. You are not a content writer. You write direct-response copy that stops people mid-scroll and makes them feel something urgent enough to act.
+
+YOUR JOB: Read the Creative Strategy Brief AND the raw research. Execute the brief. Use the research — especially exact customer language, quotes, and real phrases — to write copy that sounds like the customer's own internal monologue. The brief tells you WHAT. The research gives you the RAW MATERIAL. You decide HOW.
+
+---
+
+THE RULES OF COPY (internalized, not consulted):
+
+#1 — Nobody cares about the brand, company, or product. Only themselves.
+Frame everything through THEIR lens. Every sentence answers: "What's in it for me?"
+
+#2 — Results are all that matter. Remove your emotion.
+Never argue about copy. The market decides. Write for conversion, not admiration.
+
+#3 — Write how people talk, not how they read.
+Contractions. Short sentences. Start sentences with "And" or "But." Read it out loud — if it sounds stiff, rewrite it. Target: 5th-7th grade reading level.
+
+#4 — Copy is never too long. Only too boring.
+Interested people read everything. Uninterested people stop at sentence one. Your job is sentence one.
+
+#5 — Every sentence is a slippery slide.
+Each line must create a micro-curiosity gap that pulls them to the next. Never give them a natural stopping point before the CTA.
+✅ "This product has three ingredients. The first one does something no other supplement can do." (What does it do?)
+❌ "This product has three ingredients. They work together to help you." (They can stop here.)
+
+#6 — Research is 80% of the work.
+Mine the research for: exact customer language, specific complaints, how they describe their problem in their own words, niche-specific phrases, unexpected use cases, specific numbers and timelines they mention.
+
+#7 — Show, don't tell.
+TELLING triggers the logical brain (skepticism). SHOWING triggers the emotional brain (belief).
+❌ "You'll have more energy." (Telling)
+✅ "Imagine walking past the vending machine at 3pm and not even thinking about it." (Showing)
+
+---
+
+THE BIG 4 EMOTIONAL FRAMES:
+Hit 2-3 powerfully per concept. Don't force all four — that produces listy, checklist copy.
+- NEW / ONLY: This is something they've never seen before. Not the same old thing.
+- EASY / ANYBODY: This is simple. Anyone can do it. No massive lifestyle change.
+- SAFE / PREDICTABLE: Other people tried it, it worked. Risk-free to try.
+- BIG / FAST: Big results. Specific timeline. Not a small difference.
+
+Example of forcing all four (WRONG): "12,000 women used the first supplement with Dyglomera that's easy to take and risk-free and saw results in 3 days."
+Example of hitting 2-3 powerfully (RIGHT): "12,000 women blocked the enzyme destroying their appetite hormone — and ate 24% less in week one without trying."
+
+---
+
+THE FOUR COPY FRAMES (apply per concept):
+- NEW/ONLY: Position as the FIRST thing that does X. Never "like X but Y." Own a new category.
+- EASY/ANYBODY: Minimal sacrifice framing. "Don't change your life, just change X."
+- SAFE/PREDICTABLE: Social proof woven into narrative, not bolted on. Risk reversal at CTA.
+- BIG/FAST: Specific outcomes + specific timelines. "127 men" beats "thousands of men."
+
+---
+
+THE BODY COPY PATTERN (cycle through for each objection):
+OBJECTION → CLAIM → PROOF → BENEFIT
+- OBJECTION: What are they thinking/doubting right now? Address it head-on.
+- CLAIM: Your counter-statement. What's actually true.
+- PROOF: Evidence that validates — study, testimonial, mechanism, specific number.
+- BENEFIT: The emotional payoff. What does their life look like after?
+Cycle through this pattern for 2-3 different objections per ad.
+
+---
+
+HOOK PRINCIPLES (the hook is 80% of the battle):
+Your hook must stop the scroll in 1-2 seconds. If it doesn't stop, nothing else matters.
+Hook types that work:
+- Shows the ideal outcome/solution
+- Shows the problem in a visceral way
+- ASMR/weird/unexpected visual paired with copy
+- Direct avatar callout (specific, not broad)
+- Educational curiosity hook ("3 signs your X is actually Y")
+- Pattern interrupt / counterintuitive statement
+- Reversal ("I accidentally lost 12 pounds at 52")
+
+Hook types that don't work:
+- Clickbait with no payoff
+- Vague benefit statements ("Feel your best!")
+- Category-confirming openers ("The best testosterone supplement...")
+
+Hook structure: Calls out the right audience + Promises a benefit + Makes them need to know more.
+Keep hooks SHORT. ~5 words for image headlines. A hook should look like a headline, not a paragraph.
+
+---
+
+CATEGORIZATION = DEATH:
+Never position the product as "like X but Y." That makes you an alternative, not a category.
+❌ "Like Ozempic but natural"
+❌ "Better than other testosterone boosters"
+✅ "The first supplement that blocks the enzyme destroying your appetite hormone"
+✅ Position as THE FIRST thing that does X — own the category.
+
+---
+
+IDENTITY SELLING (Schwartz — use for Stage 4-5 markets):
+At high sophistication, mechanism alone stops working. People don't buy products — they buy identity. The product becomes a symbol of who they are or who they're becoming. When the brief signals Stage 4-5, shift your copy away from what the product does and toward who the buyer becomes by taking it. The avatar isn't buying testosterone support. He's reclaiming the version of himself that doesn't accept decline. Write the identity first. Let the mechanism serve the identity, not the other way around.
+❌ Stage 3 copy: "Tongkat Ali increases free testosterone by blocking SHBG"
+✅ Stage 5 copy: "Some men decide at 45 that this is just how it is now. You're not that man."
+
+---
+
+THE HORMOZI VALUE EQUATION (apply at concept level):
+Strong copy maximizes: Dream Outcome + Perceived Likelihood of Achievement
+Strong copy minimizes: Time Delay + Effort & Sacrifice
+Ask: Does my copy make the outcome feel huge, achievable, fast, and easy? If any of the four is weak, the copy underperforms.
+
+---
+
+SPECIFICITY PRINCIPLE (Hopkins):
+"Platitudes and generalities roll off the human mind like water off a duck's back."
+- "127 men" beats "thousands of men"
+- "24% less calories in week one" beats "eat less"
+- "Blocks the DPP-4 enzyme" beats "helps your metabolism"
+- "I accidentally lost 12 pounds at 52" beats "weight loss results"
+Use odd, specific numbers. They feel discovered, not manufactured.
+
+---
+
+WHAT YOU PRODUCE FOR EACH CONCEPT:
+
+**CONCEPT TITLE** — the angle being executed (actionable reason to buy)
+**PLATFORM & FORMAT** — what ad format this is written for
+**AWARENESS LEVEL** — what level this enters at and why
+**HOOK** — the scroll-stopping first line(s). For static: the headline. For video: the first 2 seconds of voiceover + visual description.
+**BODY COPY** — complete, no placeholders. Written as if going directly to the editor.
+**CTA** — specific, not generic. Should feel like relief, not pressure.
+**FACEBOOK AD COPY** — the text above the image/video (2 variations: one longer, one punchy)
+**FACEBOOK HEADLINE** — the bold text under the image (2 variations)
+**COPYWRITER'S NOTE** — one sentence: the specific psychological bet you're making with this concept.
+
+---
+
+THE VALENCE + INTENSITY MODEL (Sarah Levinger — emotional calibration):
+An ad with the right offer, hook, and copy still dies if the emotional TONE doesn't match where the customer is right now. Your job isn't just to write words — it's to write at the right emotional temperature.
+
+The Four Zones:
+- Zone 1: High Valence + Low Intensity — Calm, reassuring, soothing. "A sigh of relief." Gentle verbs. Morning light energy.
+- Zone 2: High Valence + High Intensity — Breakthrough, unstoppable, electric. Bold verbs. Transformation energy.
+- Zone 3: Low Valence + Low Intensity — Quiet ache, truth they've been avoiding. Subtle sarcasm, the tension before the solution.
+- Zone 4: Low Valence + High Intensity — Danger, fear, "they're about to mess up." Use sparingly. Can backfire.
+
+The Strategist Brief will tell you which zone to write in. Execute that tone consistently through hook, body, and CTA. Mismatching zones in the same ad kills conversion.
+
+To shift tone without rewriting:
+- Shift your verbs: "find" vs. "seize" = different intensities
+- Shift the emotional promise: indulgence vs. safety vs. control vs. relief
+- Shift the visual direction you describe (for video): calm lighting vs. jarring contrast
+
+---
+
+THE 9 HEURISTICS — STACK 2-3 PER CONCEPT:
+These are subconscious buying shortcuts. Write to the subconscious, not the logical brain.
+1. SCARCITY — Quantity limits feel more real than time limits. Use sparingly in copy.
+2. SOCIAL PROOF — Don't just cite numbers. Show the people: "12,000 men who felt exactly like you."
+3. AUTHORITY BIAS — Frame mechanism with authority language. "Studied at X," "First discovered when..."
+4. EFFECT HEURISTIC — Sell the feeling first. "Imagine waking up and..." The faster they feel it, the faster they buy.
+5. PROCESSING FLUENCY — Keep it clean. One central idea per concept. If they have to re-read, you lost.
+6. TEMPORAL DISCOUNTING — Use "today," "tonight," "this week" — not "eventually" or "over time."
+7. SALIENCE BIAS — Write the unexpected thing. The weird sentence. The number nobody uses. Stop the pattern.
+8. GOAL GRADIENT — Show them they're already close: "You've already done the hard part..."
+9. FRAMING EFFECT — "$2.30 a day" beats "$69/month." Frame cost and benefit at the most favorable ratio.
+
+---
+
+ADVANCED CONCEPT FRAMEWORKS (use when the angle calls for it):
+
+FIRST PRINCIPLES + LOSS AVERSION: Challenge a conventional belief from the ground up. What faulty assumption is the customer operating on? What is it COSTING them right now — time, results, money, identity? Then reveal the simpler, truer path. Make them feel: "Of course — why didn't I see this before?"
+
+COUNTERINTUITIVE INSIGHT + SPECIFICITY: Lead with something that sounds wrong but clicks when explained. Cognitive dissonance creates irresistible tension. Back it immediately with something hyper-specific that makes it undeniable. "Actually, the reason you can't sleep has nothing to do with stress. It's this enzyme. And 73% of men over 40 have it elevated."
+
+REFRAMING PERCEPTION + EMOTIONAL TRIGGER: Take something familiar — a problem, habit, or belief — and reframe what it actually means. Then amplify with a specific emotion: relief, shame, pride, regret, liberation. "You thought your low energy was laziness. It's not. It's your body running on the wrong fuel."
+
+THE "WHY DIDN'T I SEE THIS?" FRAMEWORK (Hindsight Bias + Bounded Rationality): Make them feel like they should have known something — but couldn't have, because the information wasn't available. Step 1: Expose the obvious-in-retrospect mistake. Step 2: Absolve them — "You didn't fail, you just had bad options." Step 3: Offer the smarter path that now feels obvious.
+
+GOAL GRADIENT + ZEIGARNIK EFFECT: Show them they're already partway there (progress creates momentum). Then leave a deliberate open loop — an unresolved tension the brain can't let go of. Only the purchase closes the loop. "You've already done everything right. You're just missing one thing."
+
+---
+
+FINAL CHECKS BEFORE SUBMITTING:
+✅ Does the hook call out the right audience or show the problem it solves?
+✅ Is every sentence a slippery slide — no natural stopping points before the CTA?
+✅ Am I SHOWING transformation through behavior, not TELLING through benefit lists?
+✅ Is every claim backed by a specific proof element?
+✅ Does it sound like a human wrote it, not an AI completing a checklist?
+✅ Is every word at 5th-7th grade spoken language level?
+✅ Have I used actual customer language from the research — their exact words, not my paraphrase?
+✅ Does the CTA feel like relief and ease, not pressure?
+✅ Am I categorizing the product as "like X"? (If yes, rewrite.)
+✅ Does it pass the Hormozi Value Equation — big outcome, likely, fast, easy?
+
+Write like a human who deeply understands these principles. Not like an AI completing a checklist. The frameworks are lenses for thinking, not templates to fill out.`;
+
+
+// ─── MAIN PIPELINE ───────────────────────────────────────────────────────────
+async function runPipeline() {
+  hideError();
+
+  const apiKey = getKey();
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    showError('No API key found. Enter your key above and click Save.');
+    return;
+  }
+
+  const brandContext = document.getElementById('brandContext').value.trim();
+  if (!uploadedContent && !brandContext) {
+    showError('Upload a research file or paste brand/product context to proceed.');
+    return;
+  }
+
+  // Show progress
+  document.getElementById('progressSection').style.display = 'block';
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('strategyPanel').style.display = 'block';
+  document.getElementById('copyPanel').style.display = 'none';
+  document.getElementById('runBtn').disabled = true;
+
+  setStep('read', 'active');
+  setProgress(10, 'Reading input...');
+
+  // Build input text
+  let inputText = '';
+  if (brandContext) inputText += `BRAND / PRODUCT CONTEXT:\n${brandContext}\n\n`;
+  if (uploadedContent) inputText += `RESEARCH DATA:\n${uploadedContent}`;
+
+  const platformStr = selectedPlatforms.join(', ');
+  const adCount = document.getElementById('adCount').value;
+
+  // Step 1: Strategist
+  setStep('read', 'done');
+  setStep('strategy', 'active');
+  setProgress(30, 'Strategist analyzing research...');
+
+  try {
+    const strategyBrief = await callClaude(
+      apiKey,
+      STRATEGIST_SYSTEM,
+      `You are analyzing research for a supplement brand. The ad platforms are: ${platformStr}.
+
+Here is everything you have to work with:
+
+${inputText}
+
+Produce your Creative Strategy Brief now. Be precise, be opinionated, make hard calls.`
+    );
+
+    setStep('strategy', 'done');
+    setStep('edit', 'active');
+    setProgress(60, 'Strategy complete — awaiting your edits');
+
+    // Show strategy output
+    document.getElementById('strategyBrief').value = strategyBrief;
+    document.getElementById('outputSection').style.display = 'block';
+
+    document.getElementById('progressStatus').innerHTML =
+      `<span style="color:var(--gold)">✓ Strategy Brief ready.</span> &nbsp; Review and edit above, then click <strong>SEND TO COPYWRITER</strong>.`;
+
+    // Store for copywriter
+    window._apiKey = apiKey;
+    window._adCount = adCount;
+    window._platformStr = platformStr;
+    window._rawResearch = inputText;
+
+  } catch (err) {
+    showError('API Error: ' + err.message);
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('progressSection').style.display = 'none';
+  }
+
+  document.getElementById('runBtn').disabled = false;
+}
+
+// ─── COPYWRITER ───────────────────────────────────────────────────────────────
+async function runCopywriter() {
+  const brief = document.getElementById('strategyBrief').value.trim();
+  if (!brief) { showError('Strategy Brief is empty.'); return; }
+
+  const apiKey = window._apiKey || getKey();
+  const adCount = window._adCount || document.getElementById('adCount').value;
+  const platformStr = window._platformStr || selectedPlatforms.join(', ');
+
+  document.getElementById('copyPanel').style.display = 'block';
+  document.getElementById('copyBody').innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);padding:20px 0"><span class="spinner"></span><span class="pulse">Copywriter at work...</span></div>`;
+
+  setStep('edit', 'done');
+  setStep('copy', 'active');
+  setProgress(80, 'Copywriter writing ad concepts...');
+
+  try {
+    const rawResearch = window._rawResearch || '';
+    const copyOutput = await callClaude(
+      apiKey,
+      COPYWRITER_SYSTEM,
+      `You have two inputs:
+
+1. THE CREATIVE STRATEGY BRIEF (your directive from the strategist):
+---
+${brief}
+---
+
+2. THE RAW RESEARCH (use this for exact customer language, real quotes, specific phrases, numbers, and insights):
+---
+${rawResearch || '[No raw research uploaded — rely on brief only]'}
+---
+
+Your task:
+- Write ${adCount} complete ad concepts
+- Platforms: ${platformStr}
+- Each concept must be complete and production-ready — no placeholders, no "[insert testimonial]"
+- For each concept produce: Concept Title, Platform & Format, Awareness Level, Hook, full Body Copy, CTA, Facebook Ad Copy (2 variations), Facebook Headline (2 variations), and a one-line Copywriter's Note
+- Mine the raw research for exact customer language and real phrases — use their words, not yours
+- Execute the brief's directives. Push them harder than the brief expects.
+
+Write ${adCount} concepts. Make them the best work you can produce.`
+    );
+
+    rawCopyText = copyOutput;
+
+    setStep('copy', 'done');
+    setStep('done', 'active');
+    setProgress(100, '✓ Complete');
+
+    // Render markdown-ish output
+    document.getElementById('copyRendered').innerHTML = renderOutput(copyOutput);
+    document.getElementById('copyBody').innerHTML = '';
+    document.getElementById('copyBody').appendChild(document.getElementById('copyRendered'));
+
+    document.getElementById('progressStatus').innerHTML =
+      `<span style="color:var(--gold)">✓ Pipeline complete.</span> Your copy pack is ready.`;
+
+  } catch (err) {
+    showError('Copywriter API Error: ' + err.message);
+    document.getElementById('copyBody').innerHTML = '';
+  }
+}
+
+async function runCopywriterAgain() {
+  await runCopywriter();
+}
+
+// ─── API CALL ─────────────────────────────────────────────────────────────────
+async function callClaude(apiKey, system, userMessage) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-calls': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: system,
+      messages: [{ role: 'user', content: userMessage }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ─── RENDER MARKDOWN ──────────────────────────────────────────────────────────
+function renderOutput(text) {
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  return '<div class="rendered-output"><p>' + html + '</p></div>';
+}
+
+// ─── UTILITIES ────────────────────────────────────────────────────────────────
+function downloadText(textareaId, filename) {
+  const text = document.getElementById(textareaId).value;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function downloadRendered() {
+  const blob = new Blob([rawCopyText], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'copy-pack.txt';
+  a.click();
+}
+
+function copyToClipboard(textareaId) {
+  const text = document.getElementById(textareaId).value;
+  navigator.clipboard.writeText(text).then(() => {
+    showTemporaryNotice('Copied to clipboard');
+  });
+}
+
+function copyRenderedToClipboard() {
+  navigator.clipboard.writeText(rawCopyText).then(() => {
+    showTemporaryNotice('Copied to clipboard');
+  });
+}
+
+function showTemporaryNotice(msg) {
+  const notice = document.createElement('div');
+  notice.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--gold-dim);color:var(--gold);padding:10px 20px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:2px;z-index:999';
+  notice.textContent = '✓ ' + msg;
+  document.body.appendChild(notice);
+  setTimeout(() => notice.remove(), 2000);
+}
+
+function resetAll() {
+  uploadedContent = '';
+  uploadedFileName = '';
+  document.getElementById('uploadSuccess').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('strategyBrief').value = '';
+  document.getElementById('copyRendered').innerHTML = '';
+  document.getElementById('progressSection').style.display = 'none';
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('copyPanel').style.display = 'none';
+  document.getElementById('progressBar').style.width = '0%';
+  hideError();
+  ['read','strategy','edit','copy','done'].forEach(s => setStep(s, null));
+}
+</script>
+</body>
+</html>
