@@ -291,13 +291,33 @@ function buildDocRequests(concept) {
   return requests;
 }
 
-// ─── WRITE SPREADSHEET ROW ────────────────────────────────────────────────────
+// ─── GET NEXT BATCH NUMBER ────────────────────────────────────────────────────
 
-async function writeSpreadsheetRow(sheets, spreadsheetId, concept, docUrl) {
-  // Find next empty row in the sheet
+async function getNextBatchNumber(sheets, spreadsheetId) {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: 'A:A'
+    range: "'Creative Roadmap'!A:A"
+  });
+  const rows = response.data.values || [];
+  let maxNum = 0;
+  for (const row of rows) {
+    const cell = (row[0] || '').toString();
+    const match = cell.match(/BATCH\s*#(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1]);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  return maxNum + 1;
+}
+
+// ─── WRITE SPREADSHEET ROW ────────────────────────────────────────────────────
+
+async function writeSpreadsheetRow(sheets, spreadsheetId, batchNum, concept, docUrl) {
+  // Find next empty row in Creative Roadmap tab
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "'Creative Roadmap'!A:A"
   });
   const rows = response.data.values || [];
   const nextRow = rows.length + 1;
@@ -306,23 +326,23 @@ async function writeSpreadsheetRow(sheets, spreadsheetId, concept, docUrl) {
   const adType = adTypeMap[concept.adType?.toLowerCase()] || 'Ideation';
 
   const values = [[
-    `BATCH #${concept.batchNum}`,  // A
-    'Working',                      // B
-    'Williams AI',                  // C
-    concept.name,                   // D — Ad Concept
-    concept.desire,                 // E — Desire
-    concept.angles,                 // F — Angle(s)
-    concept.testing,                // G — What are you testing
-    concept.awareness,              // H — Awareness Level
-    concept.format,                 // I — Ad Format
-    adType,                         // J — Ad Type
-    '',                             // K — Video/Graphic Editor (leave empty)
-    docUrl                          // L — Link To Brief
+    `BATCH #${batchNum}`,  // A
+    'Working',              // B
+    'Williams AI',          // C
+    concept.name,           // D
+    concept.desire,         // E
+    concept.angles,         // F
+    concept.testing,        // G
+    concept.awareness,      // H
+    concept.format,         // I
+    adType,                 // J
+    '',                     // K — leave empty
+    docUrl                  // L
   ]];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `A${nextRow}`,
+    range: `'Creative Roadmap'!A${nextRow}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values }
   });
@@ -331,7 +351,7 @@ async function writeSpreadsheetRow(sheets, spreadsheetId, concept, docUrl) {
 // ─── MAIN GENERATE ENDPOINT ───────────────────────────────────────────────────
 
 app.post('/api/generate', async (req, res) => {
-  const { tokens, concepts, spreadsheetId } = req.body;
+  const { tokens, concepts, spreadsheetId, brand } = req.body;
 
   if (!tokens || !concepts || !spreadsheetId) {
     return res.status(400).json({ error: 'Missing tokens, concepts, or spreadsheetId' });
@@ -348,22 +368,23 @@ app.post('/api/generate', async (req, res) => {
     // Find or create Batches folder
     const folderId = await findOrCreateFolder(drive, 'Batches');
 
+    // Get the next batch number from the spreadsheet
+    let nextBatchNum = await getNextBatchNumber(sheets, spreadsheetId);
+
     const results = [];
 
     for (const concept of concepts) {
-      const title = `Batch #${concept.batchNum} — ${concept.name} — Kleen Bio`;
+      const batchNum = nextBatchNum++;
+      const brandName = brand || 'Kleen Bio';
+      const title = `Batch #${batchNum} — ${concept.name} — ${brandName}`;
 
       // Create Google Doc
-      const docUrl = await createGoogleDoc(docs, drive, folderId, title, concept);
+      const docUrl = await createGoogleDoc(docs, drive, folderId, title, { ...concept, batchNum });
 
       // Write to spreadsheet
-      await writeSpreadsheetRow(sheets, spreadsheetId, concept, docUrl);
+      await writeSpreadsheetRow(sheets, spreadsheetId, batchNum, concept, docUrl);
 
-      results.push({
-        batchNum: concept.batchNum,
-        name: concept.name,
-        docUrl
-      });
+      results.push({ batchNum, name: concept.name, docUrl });
     }
 
     res.json({ success: true, results });
@@ -375,5 +396,5 @@ app.post('/api/generate', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Brief Generator backend running on port ${PORT}`);
+  console.log(`Creative Command + Brief Generator backend running on port ${PORT}`);
 });
