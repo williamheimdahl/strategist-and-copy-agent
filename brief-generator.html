@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRIEF GENERATOR — Kleen Bio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--black:#0a0a0a;--white:#f5f0e8;--cream:#ede8dc;--green:#2D6A4F;--green-light:#40916C;--green-dim:#1B4332;--gold:#c9a84c;--gold-dim:#7a6430;--border:#2a2a2a;--border-light:#3f3f3f;--surface:#141414;--surface2:#1e1e1e;--surface3:#242424;--text-muted:#888;--text-dim:#555;--red:#c8392b;--red-dim:#8a2520;--blue:#4a9edd;--blue-dim:#2a5a80;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
+  header{border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;gap:16px;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;}
+  .logo span{color:var(--green-light);}
+  .logo-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .nav-link{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);text-transform:uppercase;transition:all 0.15s;}
+  .nav-link:hover{color:var(--white);border-color:var(--border-light);}
+  .version{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);padding:4px 10px;border:1px solid var(--border);}
+  .app{max-width:960px;margin:0 auto;padding:36px 40px;}
+  .section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+  .card{background:var(--surface);border:1px solid var(--border);padding:22px;margin-bottom:20px;}
+  textarea,input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--white);padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.7;outline:none;width:100%;transition:border-color 0.2s;}
+  textarea:focus,input:focus{border-color:var(--gold);}
+  textarea{resize:vertical;}
+  select{background:var(--surface2);border:1px solid var(--border);color:var(--white);padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;outline:none;transition:border-color 0.2s;cursor:pointer;width:100%;}
+  select:focus{border-color:var(--gold);}
+  input::placeholder,textarea::placeholder{color:var(--text-dim);}
+  .field-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+  .field-group{margin-bottom:16px;}
+  .btn-primary{background:var(--green);border:none;color:var(--white);padding:14px 40px;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:5px;cursor:pointer;transition:all 0.15s;}
+  .btn-primary:hover{background:var(--green-light);transform:translateY(-1px);}
+  .btn-primary:disabled{background:#333;cursor:not-allowed;transform:none;opacity:0.5;}
+  .btn-secondary{background:transparent;border:1px solid var(--border-light);color:var(--text-muted);padding:10px 22px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.15s;}
+  .btn-secondary:hover{border-color:var(--white);color:var(--white);}
+  .btn-google{background:#4285F4;border:none;color:#fff;padding:9px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:9px;transition:all 0.15s;}
+  .btn-google:hover{background:#3367D6;}
+  .auth-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .auth-status{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;}
+  .auth-status.connected{color:var(--green-light);}
+  .auth-status.disconnected{color:var(--text-dim);}
+  .error-box{display:none;background:rgba(200,57,43,0.08);border:1px solid var(--red-dim);padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--red);letter-spacing:1px;margin-bottom:20px;}
+  .steps{display:flex;margin-bottom:32px;border-bottom:1px solid var(--border);}
+  .step-tab{flex:1;padding:14px 8px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);border-bottom:2px solid transparent;transition:all 0.2s;}
+  .step-tab.active{color:var(--white);border-bottom-color:var(--green-light);}
+  .step-tab.done{color:var(--text-muted);}
+  .step-tab.done::before{content:'✓ ';color:var(--green-light);}
+  .concept-review{background:var(--surface);border:1px solid var(--border);margin-bottom:16px;overflow:hidden;}
+  .concept-review-header{padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .concept-num{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--white);}
+  .concept-name{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--white);}
+  .tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border:1px solid;display:inline-block;}
+  .tag-video{color:var(--blue);border-color:var(--blue-dim);}
+  .tag-static{color:var(--gold);border-color:var(--gold-dim);}
+  .tag-green{color:var(--green-light);border-color:var(--green);}
+  .tag-muted{color:var(--text-muted);border-color:var(--border);}
+  .concept-body{padding:20px;}
+  .review-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .review-full{grid-column:1/-1;}
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);height:3px;margin-bottom:10px;overflow:hidden;}
+  .progress-bar{height:100%;background:var(--green-light);width:0%;transition:width 0.4s ease;}
+  .progress-status{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--text-muted);}
+  .progress-status .lbl{color:var(--gold);}
+  .result-card{background:var(--surface2);border:1px solid var(--border);padding:18px 22px;margin-bottom:10px;}
+  .result-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:var(--white);margin-bottom:8px;}
+  .result-link{font-family:'DM Mono',monospace;font-size:11px;color:var(--green-light);text-decoration:none;display:block;margin-top:5px;}
+  .result-link:hover{text-decoration:underline;}
+  .result-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:4px;}
+  .action-row{display:flex;gap:14px;align-items:center;margin-top:24px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px;}
+  .tip{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text-dim);margin-top:6px;}
+  ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--black);}::-webkit-scrollbar-thumb{background:var(--border-light);}
+  @media(max-width:700px){.app{padding:20px;}header{padding:16px 20px;}.review-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BRIEF <span>GENERATOR</span></div>
+  <div class="logo-sub">Batch Brief Creator</div>
+  <div class="header-right">
+    <a href="/" class="nav-link">← Creative Command</a>
+    <div class="version">v1.0</div>
+  </div>
+</header>
+
+<div class="app">
+
+  <div class="steps">
+    <div class="step-tab active" id="tab-1">01 · Setup</div>
+    <div class="step-tab" id="tab-2">02 · Review & Edit</div>
+    <div class="step-tab" id="tab-3">03 · Create</div>
+  </div>
+
+  <!-- STEP 1 ──────────────────────────────────────────────────────────────── -->
+  <div id="step1">
+
+    <div class="section-label">Google Account</div>
+    <div class="card">
+      <div class="auth-row">
+        <button class="btn-google" onclick="connectGoogle()">
+          <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#fff" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.17z"/><path fill="#fff" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#fff" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#fff" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+          Connect Google Account
+        </button>
+        <span class="auth-status disconnected" id="authStatus">Not connected</span>
+        <button class="btn-secondary" onclick="disconnectGoogle()" id="disconnectBtn" style="display:none">CLEAR</button>
+      </div>
+      <div class="tip" style="margin-top:10px">One-time setup — stays connected between sessions.</div>
+    </div>
+
+    <div class="section-label">Copy Pack</div>
+    <div class="card">
+      <div class="field-label">Paste Creative Command output</div>
+      <textarea id="copyPack" rows="18" placeholder="Paste the full copy pack output from Creative Command here...
+
+The agent will parse all concepts and show them for review before creating anything in Google Drive."></textarea>
+    </div>
+
+    <div class="error-box" id="err1"></div>
+    <div class="action-row">
+      <button class="btn-primary" onclick="doParse()">PARSE CONCEPTS →</button>
+    </div>
+
+  </div>
+
+  <!-- STEP 2 ──────────────────────────────────────────────────────────────── -->
+  <div id="step2" style="display:none">
+
+    <div class="section-label">Review & Edit</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Review what was extracted. Edit any field. <strong style="color:var(--white)">Nothing is created in Google Drive until you click Confirm.</strong></p>
+
+    <div id="cards"></div>
+
+    <div class="error-box" id="err2"></div>
+    <div class="action-row">
+      <button class="btn-primary" id="confirmBtn" onclick="doCreate()">CONFIRM & CREATE →</button>
+      <button class="btn-secondary" onclick="goTo(1)">← BACK</button>
+    </div>
+
+  </div>
+
+  <!-- STEP 3 ──────────────────────────────────────────────────────────────── -->
+  <div id="step3" style="display:none">
+
+    <div id="progressArea">
+      <div class="progress-wrap"><div class="progress-bar" id="pbar"></div></div>
+      <div class="progress-status" id="pstatus">Creating documents...</div>
+    </div>
+
+    <div id="resultsArea" style="display:none;margin-top:24px">
+      <div class="section-label">Created</div>
+      <div id="resultCards"></div>
+      <div class="action-row">
+        <button class="btn-secondary" onclick="doReset()">START OVER</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const BACKEND = 'https://strategist-and-copy-agent-production.up.railway.app';
+const SHEET_ID = '1bDJWo9SN4h748VCaPzZ10H6kzC-XbrG-1Fro3Sos5vU';
+let tokens = null, concepts = [];
+
+// AUTH
+function connectGoogle() {
+  fetch(`${BACKEND}/auth/google`).then(r=>r.json()).then(({url})=>{
+    window.open(url,'gauth','width=500,height=620');
+    window.addEventListener('message', function h(e){
+      if(e.data?.tokens){tokens=e.data.tokens;localStorage.setItem('bg_tok',JSON.stringify(tokens));setAuth(true);window.removeEventListener('message',h);}
+      else if(e.data?.error){showErr('err1','Auth failed: '+e.data.error);window.removeEventListener('message',h);}
+    });
+  }).catch(e=>showErr('err1','Cannot reach backend: '+e.message));
+}
+function disconnectGoogle(){tokens=null;localStorage.removeItem('bg_tok');setAuth(false);}
+function setAuth(on){
+  document.getElementById('authStatus').textContent=on?'✓ Connected':'Not connected';
+  document.getElementById('authStatus').className='auth-status '+(on?'connected':'disconnected');
+  document.getElementById('disconnectBtn').style.display=on?'inline-block':'none';
+}
+window.addEventListener('load',()=>{
+  const s=localStorage.getItem('bg_tok');
+  if(s){try{tokens=JSON.parse(s);setAuth(true);}catch(e){}}
+});
+
+// HELPERS
+function showErr(id,msg){const b=document.getElementById(id);b.textContent='⚠ '+msg;b.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+function goTo(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('step'+i).style.display=i===n?'block':'none';
+    const t=document.getElementById('tab-'+i);
+    t.className='step-tab'+(i<n?' done':i===n?' active':'');
+  });
+  window.scrollTo(0,0);
+}
+function setP(pct,lbl){
+  document.getElementById('pbar').style.width=pct+'%';
+  document.getElementById('pstatus').innerHTML=`<span class="spinner"></span><span class="lbl">${lbl}</span>`;
+}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// PARSE
+function doParse(){
+  hideErr('err1');
+  const txt=document.getElementById('copyPack').value.trim();
+  if(!txt){showErr('err1','Paste a copy pack first.');return;}
+  concepts=parse(txt);
+  if(!concepts.length){showErr('err1','No concepts found. Make sure output contains "## CONCEPT 1 —" headers.');return;}
+  renderCards();
+  goTo(2);
+}
+
+// RENDER REVIEW CARDS
+function renderCards(){
+  const c=document.getElementById('cards');
+  c.innerHTML='';
+  concepts.forEach((cp,i)=>{
+    c.innerHTML+=`
+    <div class="concept-review">
+      <div class="concept-review-header">
+        <div class="concept-num">BATCH #${cp.batchNum}</div>
+        <div class="concept-name">${esc(cp.name)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag ${cp.isVideo?'tag-video':'tag-static'}" id="ftag-${i}">${esc(cp.format)}</span>
+          <span class="tag tag-muted">${esc(cp.platform)}</span>
+          <span class="tag tag-green" id="atag-${i}">${cp.adType.toUpperCase()}</span>
+        </div>
+      </div>
+      <div class="concept-body">
+        <div class="review-grid">
+          <div>
+            <div class="field-label">Batch Number</div>
+            <input type="text" value="BATCH #${cp.batchNum}" onchange="concepts[${i}].batchNum=this.value.replace('BATCH #','')" />
+          </div>
+          <div>
+            <div class="field-label">Ad Type</div>
+            <select onchange="concepts[${i}].adType=this.value;document.getElementById('atag-${i}').textContent=this.value.toUpperCase()">
+              <option value="ideation" ${cp.adType==='ideation'?'selected':''}>Ideation — new concept</option>
+              <option value="iteration" ${cp.adType==='iteration'?'selected':''}>Iteration — based on tested concept</option>
+              <option value="imitation" ${cp.adType==='imitation'?'selected':''}>Imitation — based on competitor/reference</option>
+            </select>
+          </div>
+          <div class="review-full">
+            <div class="field-label">Concept Name</div>
+            <input type="text" value="${esc(cp.name)}" onchange="concepts[${i}].name=this.value" />
+          </div>
+          <div class="review-full">
+            <div class="field-label">Desire</div>
+            <input type="text" value="${esc(cp.desire)}" onchange="concepts[${i}].desire=this.value" />
+          </div>
+          <div class="review-full">
+            <div class="field-label">Angle(s)</div>
+            <input type="text" value="${esc(cp.angles)}" onchange="concepts[${i}].angles=this.value" />
+          </div>
+          <div class="review-full">
+            <div class="field-label">Testing note (column G in spreadsheet)</div>
+            <textarea rows="3" onchange="concepts[${i}].testing=this.value">${esc(cp.testing)}</textarea>
+          </div>
+          <div>
+            <div class="field-label">Format</div>
+            <input type="text" value="${esc(cp.format)}" onchange="concepts[${i}].format=this.value" />
+          </div>
+          <div>
+            <div class="field-label">Platform</div>
+            <input type="text" value="${esc(cp.platform)}" onchange="concepts[${i}].platform=this.value" />
+          </div>
+          <div>
+            <div class="field-label">Awareness Level</div>
+            <input type="text" value="${esc(cp.awareness)}" onchange="concepts[${i}].awareness=this.value" />
+          </div>
+          <div>
+            <div class="field-label">Emotional Zone</div>
+            <input type="text" value="${esc(cp.zone)}" onchange="concepts[${i}].zone=this.value" />
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+// CREATE
+async function doCreate(){
+  hideErr('err2');
+  if(!tokens){showErr('err2','Connect your Google account first (go back to Step 1).');return;}
+  document.getElementById('confirmBtn').disabled=true;
+  goTo(3);
+  setP(10,`Creating ${concepts.length} Google Doc${concepts.length>1?'s':''}...`);
+  try{
+    const r=await fetch(`${BACKEND}/api/generate`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tokens,concepts,spreadsheetId:SHEET_ID})
+    });
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      if(r.status===401||(err.error&&err.error.includes('token'))){
+        tokens=null;localStorage.removeItem('bg_tok');setAuth(false);
+        throw new Error('Google session expired. Go back and reconnect.');
+      }
+      throw new Error(err.error||`HTTP ${r.status}`);
+    }
+    const data=await r.json();
+    setP(100,'✓ Done');
+    document.getElementById('pstatus').innerHTML=`<span style="color:var(--green-light)">✓ ${data.results.length} brief${data.results.length>1?'s':''} created in your Batches folder.</span>`;
+    renderResults(data.results);
+  }catch(e){
+    document.getElementById('progressArea').style.display='none';
+    showErr('err2',e.message);
+    goTo(2);
+    document.getElementById('confirmBtn').disabled=false;
+  }
+}
+
+function renderResults(results){
+  const rc=document.getElementById('resultCards');
+  rc.innerHTML='';
+  results.forEach(r=>{
+    const cp=concepts.find(c=>String(c.batchNum)===String(r.batchNum));
+    rc.innerHTML+=`
+    <div class="result-card">
+      <div class="result-title">BATCH #${r.batchNum} — ${esc(r.name)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="tag ${cp?.isVideo?'tag-video':'tag-static'}">${esc(cp?.format||'')}</span>
+        <span class="tag tag-green">${(cp?.adType||'ideation').toUpperCase()}</span>
+        <span class="tag tag-muted">${esc(cp?.platform||'')}</span>
+      </div>
+      <a class="result-link" href="${r.docUrl}" target="_blank">→ Open Google Doc</a>
+      <div class="result-meta">Row added to spreadsheet · Link saved in column L</div>
+    </div>`;
+  });
+  document.getElementById('resultsArea').style.display='block';
+}
+
+function doReset(){
+  concepts=[];
+  document.getElementById('copyPack').value='';
+  document.getElementById('cards').innerHTML='';
+  document.getElementById('resultCards').innerHTML='';
+  document.getElementById('pbar').style.width='0%';
+  document.getElementById('resultsArea').style.display='none';
+  document.getElementById('progressArea').style.display='block';
+  document.getElementById('confirmBtn').disabled=false;
+  goTo(1);
+}
+
+// PARSER
+function parse(text){
+  const blocks=text.split(/\n(?=##\s+CONCEPT\s+\d+\s*—)/i).filter(b=>/^##\s+CONCEPT/i.test(b.trim()));
+  let bn=1;
+  return blocks.map(block=>{
+    const lines=block.split('\n');
+    const h=lines[0];
+    const ml=lines.find(l=>l.includes('**Format:**'))||'';
+    const name=(h.match(/##\s+CONCEPT\s+\d+\s*—\s*(.+)/i)||[])[1]?.trim()||'Unnamed';
+    const format=(ml.match(/\*\*Format:\*\*\s*(\w+)/i)||[])[1]||'Video';
+    const platform=(ml.match(/\*\*Platform:\*\*\s*([^|*]+)/i)||[])[1]?.trim()||'Facebook Feed';
+    const awareness=(ml.match(/\*\*Awareness:\*\*\s*([^|*]+)/i)||[])[1]?.trim()||'Level 2';
+    const zone=(ml.match(/\*\*Zone:\*\*\s*([^|*]+)/i)||[])[1]?.trim()||'';
+    const testing=(ml.match(/\*\*Testing:\*\*\s*(.+)/i)||[])[1]?.trim()||'';
+    const isVideo=/video/i.test(format);
+    const isReels=/reels/i.test(platform);
+
+    // hooks
+    const hooks=[];
+    if(isVideo){
+      const rx=/###\s+(HOOK\s+[ABC][^\n]*)\n([\s\S]*?)(?=###\s+HOOK|###\s+MAIN|\n\*\*Facebook|\n\*\*Instagram|$)/gi;
+      let m;while((m=rx.exec(block))!==null){
+        const hb=m[2];
+        hooks.push({
+          label:m[1].trim(),
+          vo:(hb.match(/^([\s\S]*?)(?=\n\*\*Frame)/i)||[])[1]?.trim()||'',
+          visual:(hb.match(/\*\*Frame 1 visual:\*\*\s*([\s\S]*?)(?=\n\*\*Hook rationale:|\n---|$)/i)||hb.match(/\*\*Frame 1:\*\*\s*([\s\S]*?)(?=\n\*\*Hook rationale:|\n---|$)/i)||[])[1]?.trim()||'',
+          rationale:(hb.match(/\*\*Hook rationale:\*\*\s*([\s\S]*?)(?=\n---|$)/i)||[])[1]?.trim()||''
+        });
+      }
+    }
+    const mainBody=(block.match(/###\s+MAIN BODY\n([\s\S]*?)(?=\n\*\*Facebook\/Instagram|\n\*\*Instagram Caption|\n---\n|$)/i)||[])[1]?.trim()||'';
+
+    // variations
+    const variations=[];
+    if(!isVideo){
+      const rx=/###\s+VARIATION\s+(\d+)\s*—?\s*([^\n]*)\n([\s\S]*?)(?=###\s+VARIATION|\n\*\*Instagram Caption|\n\*\*Facebook\/Instagram|\n---\n\n\*\*|$)/gi;
+      let m;while((m=rx.exec(block))!==null){
+        const vb=m[3];
+        variations.push({
+          num:parseInt(m[1]),label:m[2].trim(),
+          headline:(vb.match(/\*\*Headline:\*\*\s*([^\n]+)/i)||[])[1]?.trim()||'',
+          sub:(vb.match(/\*\*Subheadline:\*\*\s*([^\n]+)/i)||[])[1]?.trim()||'',
+          body:(vb.match(/\*\*Body Text:\*\*\s*([^\n]+)/i)||[])[1]?.trim()||null,
+          visual:(vb.match(/\*\*Visual Direction:\*\*\s*([\s\S]*?)(?=\n\*\*Why this works:|$)/i)||[])[1]?.trim()||'',
+          why:(vb.match(/\*\*Why this works:\*\*\s*([\s\S]*?)(?=\n---|$)/i)||[])[1]?.trim()||''
+        });
+      }
+    }
+
+    const g=s=>(block.match(new RegExp('\\*\\*'+s+'\\*\\*\\n?([\\s\\S]*?)(?=\\*\\*|$)','i'))||[])[1]?.trim()||'';
+    const copy1=(block.match(/\*\*Facebook\/Instagram Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Ad Copy 2:|$)/i)||[])[1]?.trim()||'';
+    const copy2=(block.match(/\*\*Facebook\/Instagram Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Headline|\*\*Instagram Caption|$)/i)||[])[1]?.trim()||'';
+    const h1=(block.match(/\*\*Facebook\/Instagram Headline 1:\*\*\n?([^\n*]+)/i)||[])[1]?.trim()||'';
+    const h2=(block.match(/\*\*Facebook\/Instagram Headline 2:\*\*\n?([^\n*]+)/i)||[])[1]?.trim()||'';
+    const s1=(block.match(/\*\*Facebook\/Instagram Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Subheadline 2:|$)/i)||[])[1]?.trim()||'';
+    const s2=(block.match(/\*\*Facebook\/Instagram Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i)||[])[1]?.trim()||'';
+    const cap1=(block.match(/\*\*Instagram Caption 1:\*\*\n([\s\S]*?)(?=\*\*Instagram Caption 2:|$)/i)||[])[1]?.trim()||'';
+    const cap2=(block.match(/\*\*Instagram Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i)||[])[1]?.trim()||'';
+    const note=(block.match(/\*\*Copywriter(?:'s|s) Note:\*\*\s*([\s\S]*?)(?=\n---|$)/i)||[])[1]?.trim()||'';
+
+    const t=block.toLowerCase();
+    const desire=t.includes('supplement')&&(t.includes('work')||t.includes('move'))?'To finally see testosterone levels move after months of failed supplementation':t.includes('soft')||t.includes('estrogen')?'To stop looking soft despite serious training and clean eating':t.includes('grandfather')?'To understand why the decline is happening and believe it can be reversed':t.includes('absorption')||t.includes('gut lining')?'To get real ROI from an expensive supplement stack':'To reclaim natural testosterone levels';
+    const aa=[];
+    if(t.includes('receptor'))aa.push('Receptor blockage mechanism');
+    if(t.includes('absorption')||t.includes('gut'))aa.push('Supplement absorption interference');
+    if(t.includes('aromatase'))aa.push('Aromatase activation');
+    if(t.includes('grandfather'))aa.push('Generational testosterone decline');
+    if(t.includes('first step')||t.includes('missing'))aa.push('First-step positioning');
+    const angles=aa.length?aa.join(' · '):name;
+    const concept_desc=t.includes('receptor')&&t.includes('block')?'Microplastic particles block testosterone receptors — supplements cannot work until cleared':t.includes('aromatase')?'Microplastics activate aromatase, converting testosterone to estrogen':t.includes('grandfather')?'Generational T decline is environmental not genetic':t.includes('gut')||t.includes('absorption')?'Microplastic buildup blocks supplement absorption at gut level':name;
+    const tl=testing.toLowerCase();
+    const avatar=tl.includes('stack collector')?'Stack Collector — obsessive optimizer, $200+/month on supplements':tl.includes('clean living')?'Clean Living Puzzle — does everything right but can\'t see results':t.includes('reddit')||t.includes('stack')?'Stack Collector — obsessive optimizer, 28-40':'Research-aware man 28-45 optimizing testosterone naturally';
+    const adType=t.includes('inspired by')||t.includes('imitation')?'imitation':t.includes('iteration')||t.includes('based on winner')?'iteration':'ideation';
+
+    return{batchNum:bn++,name,format,platform,awareness,zone,testing,concept:concept_desc,desire,angles,adFormat:`${format} — ${platform}`,avatar,copywritersNote:note,isVideo,isReels,hooks,mainBody,variations,copy1,copy2,headline1:h1,headline2:h2,sub1:s1,sub2:s2,caption1:cap1,caption2:cap2,adType};
+  });
+}
+</script>
+</body>
+</html>
