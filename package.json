@@ -1,14 +1,15 @@
 {
-  "name": "creative-command-backend",
+  "name": "brief-generator-backend",
   "version": "1.0.0",
-  "description": "Proxy backend for Creative Command agent",
-  "main": "server.js",
+  "description": "Backend for Brief Generator — creates Google Docs and fills spreadsheet",
+  "main": "brief-server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node brief-server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "googleapis": "^140.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
