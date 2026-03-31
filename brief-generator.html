@@ -111,12 +111,23 @@
       <div class="tip" style="margin-top:10px">One-time setup — stays connected between sessions.</div>
     </div>
 
+    <div class="section-label">Brand</div>
+    <div class="card">
+      <div class="field-label">Select Brand</div>
+      <select id="brandSelect" onchange="updateBrand(this.value)" style="width:100%;margin-bottom:10px">
+        <option value="Kleen Bio">Kleen Bio</option>
+        <option value="Cellics">Cellics</option>
+        <option value="Manns">Manns</option>
+      </select>
+      <div class="field-label" style="margin-top:14px">Spreadsheet ID</div>
+      <input type="text" id="spreadsheetId" value="1bDJWo9SN4h748VCaPzZ10H6kzC-XbrG-1Fro3Sos5vU" readonly style="color:var(--text-muted);cursor:default" />
+      <div class="tip" style="margin-top:6px">Auto-selected based on brand. Batch number continues from the last entry.</div>
+    </div>
+
     <div class="section-label">Copy Pack</div>
     <div class="card">
       <div class="field-label">Paste Creative Command output</div>
-      <textarea id="copyPack" rows="18" placeholder="Paste the full copy pack output from Creative Command here...
-
-The agent will parse all concepts and show them for review before creating anything in Google Drive."></textarea>
+      <textarea id="copyPack" rows="18" placeholder="Paste the full copy pack output from Creative Command here..."></textarea>
     </div>
 
     <div class="error-box" id="err1"></div>
@@ -164,28 +175,84 @@ The agent will parse all concepts and show them for review before creating anyth
 
 <script>
 const BACKEND = 'https://strategist-and-copy-agent-production.up.railway.app';
-const SHEET_ID = '1bDJWo9SN4h748VCaPzZ10H6kzC-XbrG-1Fro3Sos5vU';
+const BRANDS = {
+  'Kleen Bio': '1bDJWo9SN4h748VCaPzZ10H6kzC-XbrG-1Fro3Sos5vU',
+  'Cellics':   '1CEXnXOFWJnn2udP5NrgzqKU5HJKF1pkfmu5eOpM_bRE',
+  'Manns':     '1mO4mMXHPT46z3UPQnnlLgNs0AIhV65tbOVJwGSCvLiE'
+};
+function updateBrand(brand) {
+  const sheetId = BRANDS[brand] || BRANDS['Kleen Bio'];
+  document.getElementById('spreadsheetId').value = sheetId;
+}
 let tokens = null, concepts = [];
 
-// AUTH
+// AUTH — uses GitHub Pages as redirect URI to avoid Railway domain verification issues
+const REDIRECT_URI = 'https://williamheimdahl.github.io/strategist-and-copy-agent/brief-generator.html';
+const CLIENT_ID = window._GOOGLE_CLIENT_ID || '';
+
 function connectGoogle() {
-  fetch(`${BACKEND}/auth/google`).then(r=>r.json()).then(({url})=>{
-    window.open(url,'gauth','width=500,height=620');
-    window.addEventListener('message', function h(e){
-      if(e.data?.tokens){tokens=e.data.tokens;localStorage.setItem('bg_tok',JSON.stringify(tokens));setAuth(true);window.removeEventListener('message',h);}
-      else if(e.data?.error){showErr('err1','Auth failed: '+e.data.error);window.removeEventListener('message',h);}
-    });
-  }).catch(e=>showErr('err1','Cannot reach backend: '+e.message));
+  const clientId = document.getElementById('clientIdInput')?.value.trim() || localStorage.getItem('bg_client_id') || '';
+  if (!clientId) { showErr('err1', 'Enter your Google Client ID first.'); return; }
+  localStorage.setItem('bg_client_id', clientId);
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    access_type: 'offline',
+    prompt: 'consent'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
+
 function disconnectGoogle(){tokens=null;localStorage.removeItem('bg_tok');setAuth(false);}
+
 function setAuth(on){
   document.getElementById('authStatus').textContent=on?'✓ Connected':'Not connected';
   document.getElementById('authStatus').className='auth-status '+(on?'connected':'disconnected');
   document.getElementById('disconnectBtn').style.display=on?'inline-block':'none';
+  const authCard=document.getElementById('clientIdCard');
+  if(authCard) authCard.style.display=on?'none':'block';
 }
-window.addEventListener('load',()=>{
-  const s=localStorage.getItem('bg_tok');
-  if(s){try{tokens=JSON.parse(s);setAuth(true);}catch(e){}}
+
+// Handle OAuth callback — exchange code for tokens via Railway backend
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return;
+
+  // Clear code from URL
+  window.history.replaceState({}, document.title, window.location.pathname);
+
+  try {
+    const clientId = localStorage.getItem('bg_client_id') || '';
+    const response = await fetch(`${BACKEND}/auth/exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, redirect_uri: REDIRECT_URI, client_id: clientId })
+    });
+    const data = await response.json();
+    if (data.tokens) {
+      tokens = data.tokens;
+      localStorage.setItem('bg_tok', JSON.stringify(tokens));
+      setAuth(true);
+    } else {
+      showErr('err1', 'Token exchange failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) {
+    showErr('err1', 'Could not exchange auth code: ' + e.message);
+  }
+}
+
+window.addEventListener('load', () => {
+  const s = localStorage.getItem('bg_tok');
+  if (s) { try { tokens = JSON.parse(s); setAuth(true); } catch(e) {} }
+  const savedClientId = localStorage.getItem('bg_client_id');
+  if (savedClientId) {
+    const el = document.getElementById('clientIdInput');
+    if (el) el.value = savedClientId;
+  }
+  handleOAuthCallback();
 });
 
 // HELPERS
@@ -295,7 +362,7 @@ async function doCreate(){
     const r=await fetch(`${BACKEND}/api/generate`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tokens,concepts,spreadsheetId:SHEET_ID})
+      body:JSON.stringify({tokens,concepts,spreadsheetId:document.getElementById('spreadsheetId').value,brand:document.getElementById('brandSelect').value})
     });
     if(!r.ok){
       const err=await r.json().catch(()=>({}));
