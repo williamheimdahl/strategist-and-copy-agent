@@ -1,10 +1,10 @@
 {
-  "name": "brief-generator-backend",
+  "name": "creative-command-backend",
   "version": "1.0.0",
-  "description": "Backend for Brief Generator — creates Google Docs and fills spreadsheet",
-  "main": "brief-server.js",
+  "description": "Backend for Creative Command + Brief Generator",
+  "main": "server.js",
   "scripts": {
-    "start": "node brief-server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
