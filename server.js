@@ -474,8 +474,6 @@ function buildDocRequests(concept, batchNum) {
     lv('Subheadline 2', concept.sub2 || '');
     blank();
 
-    subLabel('LANDING PAGE');
-    lv('Landing Page', '');
   }
 
   return requests;
