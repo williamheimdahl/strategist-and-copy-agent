@@ -87,8 +87,6 @@
   .brief-editor{background:var(--surface3);border:1px solid var(--border-light);color:var(--white);font-family:'DM Mono',monospace;font-size:12px;line-height:1.8;padding:24px;width:100%;min-height:480px;resize:vertical;outline:none;transition:border-color 0.2s;letter-spacing:0.3px;}
   .brief-editor:focus{border-color:var(--gold);}
   .edit-notice{display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(106,184,224,0.05);border-left:2px solid #6ab8e0;margin-bottom:16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:#6ab8e0;}
-
-  /* ── RENDERED COPY OUTPUT ── */
   .copy-doc{font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.85;color:var(--cream);}
   .concept-card{border:1px solid var(--border);margin-bottom:36px;overflow:hidden;}
   .concept-card-header{padding:16px 24px;background:var(--surface2);border-bottom:1px solid var(--border);}
@@ -123,7 +121,6 @@
   .note-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:5px;}
   .note-text{font-size:12px;color:var(--cream);font-style:italic;}
   .plain-output{white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--cream);}
-
   @keyframes spin{to{transform:rotate(360deg);}}
   .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
@@ -371,214 +368,105 @@ async function runCopywriter() {
 
 async function runCopywriterAgain() { await runCopywriter(); }
 
-// ─── RENDER ────────────────────────────────────────────────────────────────────
 function renderOutput(text) {
   const container = document.getElementById('copyRendered');
   container.innerHTML = '';
-
   const lines = text.split('\n');
   let conceptCard = null, currentSection = null, sectionContent = null;
   let buffer = [];
-
-  function el(tag, cls, text) {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
-
-  function flushBuffer(target) {
-    const t = buffer.join('\n').trim();
-    buffer = [];
-    if (!t || !target) return;
-    const d = el('div','body-text'); d.textContent = t;
-    target.appendChild(d);
-  }
-
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function flushBuffer(target) { const t = buffer.join('\n').trim(); buffer = []; if (!t || !target) return; const d = el('div','body-text'); d.textContent = t; target.appendChild(d); }
   function extractTags(text) {
-    const tags = [];
-    const tl = text.toLowerCase();
+    const tags = []; const tl = text.toLowerCase();
     if (tl.includes('video')) tags.push(['VIDEO','c-tag c-tag-video']);
     if (tl.includes('static')) tags.push(['STATIC','c-tag c-tag-static']);
-    ['facebook','instagram','fb/ig','fb / ig','tiktok','youtube'].forEach(p => {
-      if (tl.includes(p)) tags.push([p.toUpperCase().replace('FACEBOOK','FB/IG'),'c-tag c-tag-platform']);
-    });
+    ['facebook','instagram','fb/ig','fb / ig','tiktok','youtube'].forEach(p => { if (tl.includes(p)) tags.push([p.toUpperCase().replace('FACEBOOK','FB/IG'),'c-tag c-tag-platform']); });
     if (tl.includes('marksman')) tags.push(['MARKSMAN','c-tag c-tag-test']);
     if (tl.includes('sniper')) tags.push(['SNIPER','c-tag c-tag-test']);
-    ['zone 1','zone 2','zone 3','zone 4'].forEach(z => {
-      if (tl.includes(z)) tags.push([z.toUpperCase(),'c-tag c-tag-zone']);
-    });
+    ['zone 1','zone 2','zone 3','zone 4'].forEach(z => { if (tl.includes(z)) tags.push([z.toUpperCase(),'c-tag c-tag-zone']); });
     return tags;
   }
-
-  function newSection(title, parent) {
-    flushBuffer(sectionContent);
-    currentSection = el('div','concept-section');
-    currentSection.appendChild(el('div','cs-label',title));
-    sectionContent = el('div');
-    currentSection.appendChild(sectionContent);
-    parent.appendChild(currentSection);
-  }
-
+  function newSection(title, parent) { flushBuffer(sectionContent); currentSection = el('div','concept-section'); currentSection.appendChild(el('div','cs-label',title)); sectionContent = el('div'); currentSection.appendChild(sectionContent); parent.appendChild(currentSection); }
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const stripped = line.replace(/^#+\s*/,'').trim();
-    const lower = stripped.toLowerCase();
-
-    // New concept
     if (/^#{1,2}\s*(CONCEPT\s*\d+|VIDEO CONCEPT|STATIC CONCEPT)/i.test(line)) {
       flushBuffer(sectionContent);
       conceptCard = el('div','concept-card');
       const header = el('div','concept-card-header');
       header.appendChild(el('div','concept-card-title', stripped));
       const tagRow = el('div','concept-tags');
-      // Look ahead for metadata
       const lookahead = lines.slice(i, Math.min(i+8, lines.length)).join(' ');
-      extractTags(lookahead).forEach(([label, cls]) => {
-        const t = el('span',cls,label); tagRow.appendChild(t);
-      });
+      extractTags(lookahead).forEach(([label, cls]) => { const t = el('span',cls,label); tagRow.appendChild(t); });
       header.appendChild(tagRow);
       conceptCard.appendChild(header);
       container.appendChild(conceptCard);
       currentSection = null; sectionContent = null;
       continue;
     }
-
     if (!conceptCard) continue;
-
-    // Section headers
     if (/^#{2,3}\s+/.test(line) && conceptCard) {
       const sTitle = stripped;
       if (/^(HOOK\s+[ABC])/i.test(sTitle)) {
         flushBuffer(sectionContent);
-        // Ensure we have a hooks section
-        if (!conceptCard._hooksSection) {
-          newSection('Hooks', conceptCard);
-          conceptCard._hooksSection = currentSection;
-        } else {
-          currentSection = conceptCard._hooksSection;
-          sectionContent = currentSection.querySelector('div:last-child') || currentSection;
-        }
-        const hCard = el('div','hook-card');
-        hCard.appendChild(el('div','hook-card-label', sTitle));
-        conceptCard._hooksSection.appendChild(hCard);
-        conceptCard._currentHook = hCard;
-        buffer = [];
-        continue;
+        if (!conceptCard._hooksSection) { newSection('Hooks', conceptCard); conceptCard._hooksSection = currentSection; }
+        else { currentSection = conceptCard._hooksSection; sectionContent = currentSection.querySelector('div:last-child') || currentSection; }
+        const hCard = el('div','hook-card'); hCard.appendChild(el('div','hook-card-label', sTitle));
+        conceptCard._hooksSection.appendChild(hCard); conceptCard._currentHook = hCard; buffer = []; continue;
       }
-      if (/^MAIN BODY/i.test(sTitle) || /^UNIVERSAL/i.test(sTitle)) {
-        flushBuffer(sectionContent);
-        newSection('Main Body', conceptCard);
-        buffer = [];
-        continue;
-      }
+      if (/^MAIN BODY/i.test(sTitle) || /^UNIVERSAL/i.test(sTitle)) { flushBuffer(sectionContent); newSection('Main Body', conceptCard); buffer = []; continue; }
       if (/^VARIATION\s*\d+/i.test(sTitle)) {
         flushBuffer(sectionContent);
-        if (!conceptCard._variationsSection) {
-          newSection('Variations', conceptCard);
-          conceptCard._variationsSection = currentSection;
-        } else {
-          currentSection = conceptCard._variationsSection;
-          sectionContent = currentSection.querySelector('div:last-child') || currentSection;
-        }
-        const vCard = el('div','variation-card');
-        vCard.appendChild(el('div','variation-card-label', sTitle));
-        conceptCard._variationsSection.appendChild(vCard);
-        conceptCard._currentVariation = vCard;
-        buffer = [];
-        continue;
+        if (!conceptCard._variationsSection) { newSection('Variations', conceptCard); conceptCard._variationsSection = currentSection; }
+        else { currentSection = conceptCard._variationsSection; sectionContent = currentSection.querySelector('div:last-child') || currentSection; }
+        const vCard = el('div','variation-card'); vCard.appendChild(el('div','variation-card-label', sTitle));
+        conceptCard._variationsSection.appendChild(vCard); conceptCard._currentVariation = vCard; buffer = []; continue;
       }
       if (/^(FACEBOOK|FB COPY|FB AD)/i.test(sTitle)) {
-        flushBuffer(sectionContent);
-        newSection('Facebook Copy', conceptCard);
-        const fbGrid = el('div','fb-grid');
-        sectionContent.appendChild(fbGrid);
-        conceptCard._fbGrid = fbGrid;
-        buffer = [];
-        continue;
+        flushBuffer(sectionContent); newSection('Facebook Copy', conceptCard);
+        const fbGrid = el('div','fb-grid'); sectionContent.appendChild(fbGrid); conceptCard._fbGrid = fbGrid; buffer = []; continue;
       }
-      // Generic section
-      flushBuffer(sectionContent);
-      newSection(sTitle, conceptCard);
-      buffer = [];
-      continue;
+      flushBuffer(sectionContent); newSection(sTitle, conceptCard); buffer = []; continue;
     }
-
-    // Content lines
     const inHook = conceptCard._currentHook;
     const inVariation = conceptCard._currentVariation;
-
-    // Visual direction
     if (/^(\*{1,2})?(VISUAL|VISUAL DIRECTION|IMAGE DIRECTION|FRAME 1|SCENE)/i.test(stripped)) {
       const target = inHook || inVariation || sectionContent;
       if (target) {
         const prev = buffer.join('\n').trim();
-        if (prev) {
-          const copyEl = el('div', inHook ? 'hook-copy' : 'body-text'); copyEl.textContent = prev;
-          target.appendChild(copyEl);
-        }
+        if (prev) { const copyEl = el('div', inHook ? 'hook-copy' : 'body-text'); copyEl.textContent = prev; target.appendChild(copyEl); }
         buffer = [];
-        const vb = el('div','visual-box');
-        vb.appendChild(el('div','visual-box-label','Visual Direction'));
-        const vtxt = el('div','visual-box-text');
-        vtxt.textContent = stripped.replace(/^(\*{1,2})?(VISUAL DIRECTION|VISUAL|IMAGE DIRECTION|FRAME 1 VISUAL|SCENE)\s*[:—]?\s*/i,'');
-        vb.appendChild(vtxt);
-        target.appendChild(vb);
+        const vb = el('div','visual-box'); vb.appendChild(el('div','visual-box-label','Visual Direction'));
+        const vtxt = el('div','visual-box-text'); vtxt.textContent = stripped.replace(/^(\*{1,2})?(VISUAL DIRECTION|VISUAL|IMAGE DIRECTION|FRAME 1 VISUAL|SCENE)\s*[:—]?\s*/i,'');
+        vb.appendChild(vtxt); target.appendChild(vb);
       }
       continue;
     }
-
-    // Rationale / hook note
     if (/^(\*{1,2})?HOOK RATIONALE/i.test(stripped) && inHook) {
       const prev = buffer.join('\n').trim();
       if (prev) { const ce = el('div','hook-copy'); ce.textContent = prev; inHook.appendChild(ce); }
       buffer = [];
-      const rt = el('div','rationale-text');
-      rt.textContent = stripped.replace(/^(\*{1,2})?HOOK RATIONALE\s*[:—]?\s*/i,'');
-      inHook.appendChild(rt);
-      continue;
+      const rt = el('div','rationale-text'); rt.textContent = stripped.replace(/^(\*{1,2})?HOOK RATIONALE\s*[:—]?\s*/i,''); inHook.appendChild(rt); continue;
     }
-
-    // Copywriter's note
     if (/^(\*{1,2})?COPYWRITER.?S NOTE/i.test(stripped)) {
       flushBuffer(sectionContent);
-      const note = el('div','note-card');
-      note.appendChild(el('div','note-label',"Copywriter's Note"));
-      const nt = el('div','note-text');
-      nt.textContent = stripped.replace(/^(\*{1,2})?COPYWRITER.?S NOTE\s*[:—]?\s*/i,'');
-      note.appendChild(nt);
-      if (conceptCard) conceptCard.appendChild(note);
-      continue;
+      const note = el('div','note-card'); note.appendChild(el('div','note-label',"Copywriter's Note"));
+      const nt = el('div','note-text'); nt.textContent = stripped.replace(/^(\*{1,2})?COPYWRITER.?S NOTE\s*[:—]?\s*/i,'');
+      note.appendChild(nt); if (conceptCard) conceptCard.appendChild(note); continue;
     }
-
-    // FB copy lines
     if (/^(\*{1,2})?(FACEBOOK (AD )?COPY\s*[12]|FB COPY\s*[12])/i.test(stripped) && conceptCard?._fbGrid) {
       flushBuffer(sectionContent);
-      const fbItem = el('div','fb-item');
-      fbItem.appendChild(el('div','fb-item-label', /1/.test(stripped) ? 'Copy 1 — Long' : 'Copy 2 — Short'));
-      const fbt = el('div','fb-item-text');
-      fbt.textContent = stripped.replace(/^(\*{1,2})?(FACEBOOK (AD )?COPY\s*[12]|FB COPY\s*[12])\s*[:—]?\s*/i,'');
-      fbItem.appendChild(fbt);
-      conceptCard._fbGrid.appendChild(fbItem);
-      continue;
+      const fbItem = el('div','fb-item'); fbItem.appendChild(el('div','fb-item-label', /1/.test(stripped) ? 'Copy 1 — Long' : 'Copy 2 — Short'));
+      const fbt = el('div','fb-item-text'); fbt.textContent = stripped.replace(/^(\*{1,2})?(FACEBOOK (AD )?COPY\s*[12]|FB COPY\s*[12])\s*[:—]?\s*/i,'');
+      fbItem.appendChild(fbt); conceptCard._fbGrid.appendChild(fbItem); continue;
     }
-
     if (/^(\*{1,2})?(FACEBOOK HEADLINE\s*[12]|HEADLINE\s*[12])/i.test(stripped) && conceptCard?._fbGrid) {
-      const fbItem = el('div','fb-item');
-      fbItem.appendChild(el('div','fb-item-label', /1/.test(stripped) ? 'Headline 1' : 'Headline 2'));
-      const fbt = el('div','fb-item-text');
-      fbt.textContent = stripped.replace(/^(\*{1,2})?(FACEBOOK HEADLINE\s*[12]|HEADLINE\s*[12])\s*[:—]?\s*/i,'');
-      fbItem.appendChild(fbt);
-      conceptCard._fbGrid.appendChild(fbItem);
-      continue;
+      const fbItem = el('div','fb-item'); fbItem.appendChild(el('div','fb-item-label', /1/.test(stripped) ? 'Headline 1' : 'Headline 2'));
+      const fbt = el('div','fb-item-text'); fbt.textContent = stripped.replace(/^(\*{1,2})?(FACEBOOK HEADLINE\s*[12]|HEADLINE\s*[12])\s*[:—]?\s*/i,'');
+      fbItem.appendChild(fbt); conceptCard._fbGrid.appendChild(fbItem); continue;
     }
-
-    // Skip empty lines between concepts
     if (!stripped && !conceptCard._hooksSection && !sectionContent) continue;
-
     buffer.push(line);
-
-    // Flush to appropriate target
     if (inHook && (buffer.length > 6 || (i < lines.length-1 && /^#{2,3}/.test(lines[i+1])))) {
       const t = buffer.join('\n').trim(); buffer = [];
       if (t) { const ce = el('div','hook-copy'); ce.textContent = t; inHook.appendChild(ce); }
@@ -587,24 +475,12 @@ function renderOutput(text) {
       if (t) { const ve = el('div','body-text'); ve.textContent = t; inVariation.appendChild(ve); }
     }
   }
-
   flushBuffer(sectionContent);
-
-  // Fallback if nothing rendered
-  if (!container.querySelector('.concept-card')) {
-    const plain = el('div','plain-output'); plain.textContent = text;
-    container.appendChild(plain);
-  }
+  if (!container.querySelector('.concept-card')) { const plain = el('div','plain-output'); plain.textContent = text; container.appendChild(plain); }
 }
 
-function downloadText(id, filename) {
-  const blob = new Blob([document.getElementById(id).value], {type:'text/plain'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
-}
-function downloadRendered() {
-  const blob = new Blob([rawCopyText], {type:'text/plain'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'copy-pack.txt'; a.click();
-}
+function downloadText(id, filename) { const blob = new Blob([document.getElementById(id).value], {type:'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); }
+function downloadRendered() { const blob = new Blob([rawCopyText], {type:'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'copy-pack.txt'; a.click(); }
 function copyToClipboard(id) { navigator.clipboard.writeText(document.getElementById(id).value).then(() => showNotice('Copied')); }
 function copyRenderedToClipboard() { navigator.clipboard.writeText(rawCopyText).then(() => showNotice('Copied')); }
 function showNotice(msg) {
@@ -784,19 +660,15 @@ VIDEO CONCEPT FORMAT:
 ### MAIN BODY
 [Universal body — same for all three hooks. Build the structure the concept needs, not a template. Include visual directions embedded throughout. Write for spoken delivery.]
 
-PLATFORM-SPECIFIC AD COPY OUTPUT:
-If the concept is on Facebook Feed or Instagram Feed:
-**Facebook/Instagram Ad Copy 1:** [Longer variation — text above the creative]
-**Facebook/Instagram Ad Copy 2:** [Short punchy variation — text above the creative]
-**Facebook/Instagram Headline 1:** [Bold text below creative — max 40 characters]
-**Facebook/Instagram Headline 2:** [Alternate headline — max 40 characters]
-**Facebook/Instagram Subheadline 1:** [Link description field — appears below headline, 1-2 sentences, supports or extends the headline]
-**Facebook/Instagram Subheadline 2:** [Alternate link description — different angle or emphasis from Subheadline 1]
+AD COPY — ALWAYS WRITE ALL FIELDS FOR EVERY CONCEPT, NO EXCEPTIONS:
+Always output all six fields below regardless of platform. No conditional skipping. No "not applicable." Every concept gets every field, fully written.
 
-If the concept is on Instagram Reels:
-**Instagram Caption 1:** [Longer caption — first line must hook before "more" cutoff, around 125 characters]
-**Instagram Caption 2:** [Short punchy caption]
-Note: Instagram Reels has no headline or subheadline field — do not include them.
+**Primary Text 1:** [Longer variation — 3-6 sentences. Hook, problem, mechanism, CTA. Used as primary text above the creative on Facebook/Instagram, as caption on TikTok/Instagram Reels, or as description on YouTube.]
+**Primary Text 2:** [Short punchy variation — 1-3 sentences max. Same message, compressed to its sharpest form.]
+**Headline 1:** [Max 40 characters. Bold statement or question. Not a tagline — make it land alone.]
+**Headline 2:** [Max 40 characters. Different angle or emphasis from Headline 1.]
+**Subheadline 1:** [1-2 sentences. Supports or extends Headline 1. Used as link description on Facebook/Instagram.]
+**Subheadline 2:** [1-2 sentences. Different angle or hook from Subheadline 1.]
 
 **Copywriter's Note:** [One sentence — the specific psychological bet you're making]
 
@@ -818,17 +690,15 @@ STATIC CONCEPT FORMAT:
 
 [Continue — minimum 4 variations, up to 10 based on concept breadth, average 6-7. Never repeat the same headline format AND same visual concept in any two variations. Every variation is a different creative bet.]
 
-PLATFORM-SPECIFIC AD COPY OUTPUT:
-If the concept is on Facebook Feed or Instagram Feed:
-**Facebook/Instagram Ad Copy 1:** [Longer variation — written once, used across all variations for this concept]
-**Facebook/Instagram Ad Copy 2:** [Short punchy variation]
-**Facebook/Instagram Headline 1:** [Bold text below creative — max 40 characters]
-**Facebook/Instagram Headline 2:** [Alternate headline — max 40 characters]
-**Facebook/Instagram Subheadline 1:** [Link description field — 1-2 sentences that support or extend the headline. Different emphasis from Subheadline 2.]
-**Facebook/Instagram Subheadline 2:** [Alternate link description — different angle or hook from Subheadline 1]
+AD COPY — ALWAYS WRITE ALL FIELDS FOR EVERY CONCEPT, NO EXCEPTIONS:
+Always output all six fields below regardless of platform. No conditional skipping. No "not applicable." Every concept gets every field, fully written.
 
-If the concept is on Instagram Feed only (no Facebook):
-Same as above — Instagram Feed uses identical ad fields to Facebook Feed.
+**Primary Text 1:** [Longer variation — 3-6 sentences. Hook, problem, mechanism, CTA. Written once, applies across all variations for this concept.]
+**Primary Text 2:** [Short punchy variation — 1-3 sentences max. Same message, compressed to its sharpest form.]
+**Headline 1:** [Max 40 characters. Bold statement or question. Not a tagline — make it land alone.]
+**Headline 2:** [Max 40 characters. Different angle or emphasis from Headline 1.]
+**Subheadline 1:** [1-2 sentences. Supports or extends Headline 1. Used as link description on Facebook/Instagram.]
+**Subheadline 2:** [1-2 sentences. Different angle or hook from Subheadline 1.]
 
 **Copywriter's Note:** [One sentence]
 
@@ -845,6 +715,7 @@ FINAL CHECKS:
 ✅ Every static variation a genuinely different creative bet?
 ✅ Three video hooks each making a different emotional bet?
 ✅ Not categorizing the product as "like X"?
+✅ All 6 copy fields written for every concept without exception?
 
 Write like a human who deeply understands these principles. Not an AI completing a checklist.`;
 </script>
