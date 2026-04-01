@@ -54,7 +54,7 @@ app.post('/api/claude', async (req, res) => {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 8000, system: req.body.system, messages: req.body.messages })
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 16000, system: req.body.system, messages: req.body.messages })
     });
     const data = await response.json();
     if (!response.ok) return res.status(response.status).json({ error: data.error?.message || 'Anthropic API error' });
@@ -450,18 +450,18 @@ function buildDocRequests(concept, batchNum) {
   if (isReels) {
     subLabel('INSTAGRAM CAPTIONS');
     variationBlock('CAPTION 1 — LONG');
-    body(concept.caption1 || '');
+    body(concept.caption1 || '⚠ COPY NOT PROVIDED — paste caption here before posting');
     blank();
     variationBlock('CAPTION 2 — SHORT');
-    body(concept.caption2 || '');
+    body(concept.caption2 || '⚠ COPY NOT PROVIDED — paste caption here before posting');
 
   } else {
     subLabel('PRIMARY TEXT (Body Copy)');
     variationBlock('VARIATION 1');
-    body(concept.copy1 || '');
+    body(concept.copy1 || '⚠ COPY NOT PROVIDED — paste primary text here before posting');
     blank();
     variationBlock('VARIATION 2');
-    body(concept.copy2 || '');
+    body(concept.copy2 || '⚠ COPY NOT PROVIDED — paste primary text here before posting');
     blank();
 
     subLabel('HEADLINES');
