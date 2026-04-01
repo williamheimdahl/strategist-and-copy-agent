@@ -95,7 +95,7 @@
     <div class="step-tab" id="tab-3">03 · Create</div>
   </div>
 
-  <!-- STEP 1 ──────────────────────────────────────────────────────────────── -->
+  <!-- STEP 1 -->
   <div id="step1">
 
     <div class="section-label">Google Account</div>
@@ -137,7 +137,7 @@
 
   </div>
 
-  <!-- STEP 2 ──────────────────────────────────────────────────────────────── -->
+  <!-- STEP 2 -->
   <div id="step2" style="display:none">
 
     <div class="section-label">Review & Edit</div>
@@ -153,7 +153,7 @@
 
   </div>
 
-  <!-- STEP 3 ──────────────────────────────────────────────────────────────── -->
+  <!-- STEP 3 -->
   <div id="step3" style="display:none">
 
     <div id="progressArea">
@@ -186,9 +186,7 @@ function updateBrand(brand) {
 }
 let tokens = null, concepts = [];
 
-// AUTH — uses GitHub Pages as redirect URI to avoid Railway domain verification issues
 const REDIRECT_URI = 'https://williamheimdahl.github.io/strategist-and-copy-agent/brief-generator.html';
-const CLIENT_ID = window._GOOGLE_CLIENT_ID || '';
 
 function connectGoogle() {
   const clientId = document.getElementById('clientIdInput')?.value.trim() || localStorage.getItem('bg_client_id') || '';
@@ -215,15 +213,11 @@ function setAuth(on){
   if(authCard) authCard.style.display=on?'none':'block';
 }
 
-// Handle OAuth callback — exchange code for tokens via Railway backend
 async function handleOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   if (!code) return;
-
-  // Clear code from URL
   window.history.replaceState({}, document.title, window.location.pathname);
-
   try {
     const clientId = localStorage.getItem('bg_client_id') || '';
     const response = await fetch(`${BACKEND}/auth/exchange`, {
@@ -255,7 +249,6 @@ window.addEventListener('load', () => {
   handleOAuthCallback();
 });
 
-// HELPERS
 function showErr(id,msg){const b=document.getElementById(id);b.textContent='⚠ '+msg;b.style.display='block';}
 function hideErr(id){document.getElementById(id).style.display='none';}
 function goTo(n){
@@ -272,7 +265,6 @@ function setP(pct,lbl){
 }
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// PARSE
 function doParse(){
   hideErr('err1');
   const txt=document.getElementById('copyPack').value.trim();
@@ -283,7 +275,6 @@ function doParse(){
   goTo(2);
 }
 
-// RENDER REVIEW CARDS
 function renderCards(){
   const c=document.getElementById('cards');
   c.innerHTML='';
@@ -351,7 +342,6 @@ function renderCards(){
   });
 }
 
-// CREATE
 async function doCreate(){
   hideErr('err2');
   if(!tokens){showErr('err2','Connect your Google account first (go back to Step 1).');return;}
@@ -416,7 +406,7 @@ function doReset(){
   goTo(1);
 }
 
-// PARSER
+// ── PARSER ────────────────────────────────────────────────────────────────────
 function parse(text){
   const blocks=text.split(/\n(?=##\s+CONCEPT\s+\d+\s*—)/i).filter(b=>/^##\s+CONCEPT/i.test(b.trim()));
   let bn=1;
@@ -449,7 +439,7 @@ function parse(text){
     }
     const mainBody=(block.match(/###\s+MAIN BODY\n([\s\S]*?)(?=\n\*\*Facebook\/Instagram|\n\*\*Instagram Caption|\n---\n|$)/i)||[])[1]?.trim()||'';
 
-    // variations
+    // variations (static)
     const variations=[];
     if(!isVideo){
       const rx=/###\s+VARIATION\s+(\d+)\s*—?\s*([^\n]*)\n([\s\S]*?)(?=###\s+VARIATION|\n\*\*Instagram Caption|\n\*\*Facebook\/Instagram|\n---\n\n\*\*|$)/gi;
@@ -466,15 +456,57 @@ function parse(text){
       }
     }
 
-    const g=s=>(block.match(new RegExp('\\*\\*'+s+'\\*\\*\\n?([\\s\\S]*?)(?=\\*\\*|$)','i'))||[])[1]?.trim()||'';
-    const copy1=(block.match(/\*\*Facebook\/Instagram Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Ad Copy 2:|$)/i)||[])[1]?.trim()||'';
-    const copy2=(block.match(/\*\*Facebook\/Instagram Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Headline|\*\*Instagram Caption|$)/i)||[])[1]?.trim()||'';
-    const h1=(block.match(/\*\*Facebook\/Instagram Headline 1:\*\*\n?([^\n*]+)/i)||[])[1]?.trim()||'';
-    const h2=(block.match(/\*\*Facebook\/Instagram Headline 2:\*\*\n?([^\n*]+)/i)||[])[1]?.trim()||'';
-    const s1=(block.match(/\*\*Facebook\/Instagram Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Subheadline 2:|$)/i)||[])[1]?.trim()||'';
-    const s2=(block.match(/\*\*Facebook\/Instagram Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i)||[])[1]?.trim()||'';
-    const cap1=(block.match(/\*\*Instagram Caption 1:\*\*\n([\s\S]*?)(?=\*\*Instagram Caption 2:|$)/i)||[])[1]?.trim()||'';
-    const cap2=(block.match(/\*\*Instagram Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i)||[])[1]?.trim()||'';
+    // ── Copy extraction — tries multiple label variants per field ──────────────
+    // Helper: return first regex that yields a non-empty match
+    function firstMatch(patterns) {
+      for (const rx of patterns) {
+        const m = block.match(rx);
+        if (m && m[1]?.trim()) return m[1].trim();
+      }
+      return '';
+    }
+
+    const copy1 = firstMatch([
+      /\*\*Facebook\/Instagram Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Ad Copy 2:|$)/i,
+      /\*\*Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Ad Copy 2:|$)/i,
+      /\*\*Primary Text 1:\*\*\n([\s\S]*?)(?=\*\*Primary Text 2:|$)/i,
+      /\*\*(?:Body )?Copy 1:\*\*\n([\s\S]*?)(?=\*\*(?:Body )?Copy 2:|$)/i,
+    ]);
+    const copy2 = firstMatch([
+      /\*\*Facebook\/Instagram Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Headline|\*\*Headline|\*\*Instagram Caption|$)/i,
+      /\*\*Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
+      /\*\*Primary Text 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
+      /\*\*(?:Body )?Copy 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
+    ]);
+    const h1 = firstMatch([
+      /\*\*Facebook\/Instagram Headline 1:\*\*\n?([^\n*]+)/i,
+      /\*\*Headline 1:\*\*\n?([^\n*]+)/i,
+    ]);
+    const h2 = firstMatch([
+      /\*\*Facebook\/Instagram Headline 2:\*\*\n?([^\n*]+)/i,
+      /\*\*Headline 2:\*\*\n?([^\n*]+)/i,
+    ]);
+    const s1 = firstMatch([
+      /\*\*Facebook\/Instagram Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Subheadline 2:|$)/i,
+      /\*\*Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Subheadline 2:|$)/i,
+      /\*\*Link Description 1:\*\*\n([\s\S]*?)(?=\*\*Link Description 2:|$)/i,
+    ]);
+    const s2 = firstMatch([
+      /\*\*Facebook\/Instagram Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Link Description 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+    ]);
+    // Captions — Reels/Instagram only, but always parse so server.js can route correctly
+    const cap1 = firstMatch([
+      /\*\*Instagram Caption 1:\*\*\n([\s\S]*?)(?=\*\*Instagram Caption 2:|$)/i,
+      /\*\*Caption 1:\*\*\n([\s\S]*?)(?=\*\*Caption 2:|$)/i,
+      /\*\*Reel Caption 1:\*\*\n([\s\S]*?)(?=\*\*Reel Caption 2:|$)/i,
+    ]);
+    const cap2 = firstMatch([
+      /\*\*Instagram Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Reel Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+    ]);
     const note=(block.match(/\*\*Copywriter(?:'s|s) Note:\*\*\s*([\s\S]*?)(?=\n---|$)/i)||[])[1]?.trim()||'';
 
     const t=block.toLowerCase();
