@@ -296,10 +296,12 @@ function buildDocRequests(concept, batchNum) {
     const labelEnd = start + label.length + 2; // "Label: "
     ins(label + ': ' + (value || '') + '\n');
     style(start, labelEnd, { bold: true }, 'bold');
-    // Force value portion to black explicitly
-    style(labelEnd, cursor - 1, {
-      foregroundColor: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } }
-    }, 'foregroundColor');
+    // Force value portion to black — only if there is actual value text to style
+    if (value && value.length > 0) {
+      style(labelEnd, cursor - 1, {
+        foregroundColor: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } }
+      }, 'foregroundColor');
+    }
   }
 
   // Hook label — bold dark label for Hook A/B/C, visual direction, etc.
