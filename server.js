@@ -400,10 +400,12 @@ function buildDocRequests(concept, batchNum) {
   sectionHeading(`02 — CREATION INSTRUCTIONS — ${isVideo ? 'VIDEO EDITOR' : 'GRAPHIC DESIGNER'}`);
   blank();
 
-  if (isVideo) {
-    subLabel('HOOKS — 3 variations, test simultaneously');
-    blank();
-
+  // Paste the copywriter's creation instructions verbatim — no reformatting.
+  // rawCreation contains everything from ### HOOK A / ### VARIATION 1 onward.
+  if (concept.rawCreation) {
+    body(concept.rawCreation);
+  } else if (isVideo) {
+    // Fallback for old data without rawCreation
     for (const hook of (concept.hooks || [])) {
       hookLabel(hook.label || 'Hook');
       lv('Voiceover', hook.vo || '');
@@ -413,15 +415,11 @@ function buildDocRequests(concept, batchNum) {
       lv('Rationale', hook.rationale || '');
       blank();
     }
-
     subLabel('MAIN BODY');
     body(concept.mainBody || '');
     blank();
-
   } else {
-    subLabel('VARIATIONS');
-    blank();
-
+    // Fallback for old data without rawCreation
     for (const v of (concept.variations || [])) {
       hookLabel(`VARIATION ${v.num}${v.label ? ' — ' + v.label : ''}`);
       lv('Headline', v.headline || '');
