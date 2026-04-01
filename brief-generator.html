@@ -126,8 +126,15 @@
 
     <div class="section-label">Copy Pack</div>
     <div class="card">
-      <div class="field-label">Paste Creative Command output</div>
-      <textarea id="copyPack" rows="18" placeholder="Paste the full copy pack output from Creative Command here..."></textarea>
+      <div class="field-label">Upload or paste Creative Command output</div>
+      <div id="uploadZone" style="border:1px dashed var(--border-light);padding:24px;text-align:center;cursor:pointer;background:var(--surface2);margin-bottom:12px;position:relative;transition:all 0.2s;">
+        <input type="file" id="packFileInput" accept=".txt,.md,.pdf,.doc,.docx" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;" />
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--white);margin-bottom:4px;">DROP FILE HERE</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-muted);">TXT · MD · PDF · DOCX &nbsp;·&nbsp; or click to browse</div>
+        <div id="uploadFileName" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:2px;margin-top:8px;display:none;"></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);text-align:center;margin-bottom:10px;">— OR PASTE BELOW —</div>
+      <textarea id="copyPack" rows="10" placeholder="Paste the full copy pack output from Creative Command here..."></textarea>
     </div>
 
     <div class="error-box" id="err1"></div>
@@ -247,7 +254,59 @@ window.addEventListener('load', () => {
     if (el) el.value = savedClientId;
   }
   handleOAuthCallback();
+
+  // File upload for copy pack
+  const zone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('packFileInput');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'var(--gold)'; zone.style.background = 'var(--surface3)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = 'var(--border-light)'; zone.style.background = 'var(--surface2)'; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.style.borderColor = 'var(--border-light)'; zone.style.background = 'var(--surface2)';
+    if (e.dataTransfer.files[0]) handlePackFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handlePackFile(e.target.files[0]); });
 });
+
+async function handlePackFile(file) {
+  const name = document.getElementById('uploadFileName');
+  name.textContent = `⏳ Reading ${file.name}...`;
+  name.style.display = 'block';
+  try {
+    let text = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      // Read PDF as base64 and send to backend for extraction
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+      const resp = await fetch(`${BACKEND}/api/extract-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64 })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        text = data.text || '';
+      } else {
+        throw new Error('PDF extraction failed');
+      }
+    } else {
+      // TXT, MD, DOCX — read as text directly
+      text = await file.text();
+    }
+    document.getElementById('copyPack').value = text;
+    name.textContent = `✓ ${file.name} loaded`;
+    name.style.color = 'var(--gold)';
+  } catch(e) {
+    name.textContent = `⚠ Could not read file: ${e.message}`;
+    name.style.color = 'var(--red)';
+  }
+}
 
 function showErr(id,msg){const b=document.getElementById(id);b.textContent='⚠ '+msg;b.style.display='block';}
 function hideErr(id){document.getElementById(id).style.display='none';}
