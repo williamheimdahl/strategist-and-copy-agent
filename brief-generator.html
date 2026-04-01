@@ -337,6 +337,18 @@ function renderCards(){
             <input type="text" value="${esc(cp.zone)}" onchange="concepts[${i}].zone=this.value" />
           </div>
         </div>
+        ${!cp.isVideo && !cp.isReels && (!cp.copy1 || !cp.copy2) ? `
+        <div style="background:rgba(200,57,43,0.08);border:1px solid var(--red-dim);padding:10px 14px;margin-top:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--red);letter-spacing:1px;">
+          ⚠ PRIMARY TEXT MISSING — The copywriter left ${!cp.copy1 && !cp.copy2 ? 'both variations' : !cp.copy1 ? 'Variation 1' : 'Variation 2'} empty. Edit below or the doc will show a placeholder.
+          ${!cp.copy1 ? `<div class="field-group" style="margin-top:10px"><div class="field-label" style="color:var(--red)">Variation 1 (missing)</div><textarea rows="4" onchange="concepts[${i}].copy1=this.value" placeholder="Paste primary text variation 1..."></textarea></div>` : ''}
+          ${!cp.copy2 ? `<div class="field-group"><div class="field-label" style="color:var(--red)">Variation 2 (missing)</div><textarea rows="4" onchange="concepts[${i}].copy2=this.value" placeholder="Paste primary text variation 2..."></textarea></div>` : ''}
+        </div>` : ''}
+        ${cp.isReels && (!cp.caption1 || !cp.caption2) ? `
+        <div style="background:rgba(200,57,43,0.08);border:1px solid var(--red-dim);padding:10px 14px;margin-top:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--red);letter-spacing:1px;">
+          ⚠ CAPTIONS MISSING — ${!cp.caption1 && !cp.caption2 ? 'Both captions are' : !cp.caption1 ? 'Caption 1 is' : 'Caption 2 is'} empty.
+          ${!cp.caption1 ? `<div class="field-group" style="margin-top:10px"><div class="field-label" style="color:var(--red)">Caption 1 — Long (missing)</div><textarea rows="4" onchange="concepts[${i}].caption1=this.value" placeholder="Paste caption 1..."></textarea></div>` : ''}
+          ${!cp.caption2 ? `<div class="field-group"><div class="field-label" style="color:var(--red)">Caption 2 — Short (missing)</div><textarea rows="3" onchange="concepts[${i}].caption2=this.value" placeholder="Paste caption 2..."></textarea></div>` : ''}
+        </div>` : ''}
       </div>
     </div>`;
   });
@@ -503,9 +515,9 @@ function parse(text){
       /\*\*Reel Caption 1:\*\*\n([\s\S]*?)(?=\*\*Reel Caption 2:|$)/i,
     ]);
     const cap2 = firstMatch([
-      /\*\*Instagram Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
-      /\*\*Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
-      /\*\*Reel Caption 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Instagram Caption 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram|\*\*Headline|\*\*Copywriter|\n---|$)/i,
+      /\*\*Caption 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram|\*\*Headline|\*\*Copywriter|\n---|$)/i,
+      /\*\*Reel Caption 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram|\*\*Headline|\*\*Copywriter|\n---|$)/i,
     ]);
     const note=(block.match(/\*\*Copywriter(?:'s|s) Note:\*\*\s*([\s\S]*?)(?=\n---|$)/i)||[])[1]?.trim()||'';
 
@@ -523,7 +535,14 @@ function parse(text){
     const avatar=tl.includes('stack collector')?'Stack Collector — obsessive optimizer, $200+/month on supplements':tl.includes('clean living')?'Clean Living Puzzle — does everything right but can\'t see results':t.includes('reddit')||t.includes('stack')?'Stack Collector — obsessive optimizer, 28-40':'Research-aware man 28-45 optimizing testosterone naturally';
     const adType=t.includes('inspired by')||t.includes('imitation')?'imitation':t.includes('iteration')||t.includes('based on winner')?'iteration':'ideation';
 
-    return{batchNum:bn++,name,format,platform,awareness,zone,testing,concept:concept_desc,desire,angles,adFormat:`${format} — ${platform}`,avatar,copywritersNote:note,isVideo,isReels,hooks,mainBody,variations,copy1,copy2,headline1:h1,headline2:h2,sub1:s1,sub2:s2,caption1:cap1,caption2:cap2,adType};
+    return{batchNum:bn++,name,format,platform,awareness,zone,testing,concept:concept_desc,desire,angles,adFormat:`${format} — ${platform}`,avatar,copywritersNote:note,isVideo,isReels,hooks,mainBody,variations,
+      // If primary copy is missing but captions were written, use captions as copy (copywriter labeled them as captions on a Feed static)
+      copy1: copy1 || (!isReels && cap1 ? cap1 : ''),
+      copy2: copy2 || (!isReels && cap2 ? cap2 : ''),
+      headline1:h1,headline2:h2,sub1:s1,sub2:s2,
+      caption1: isReels ? cap1 : '',
+      caption2: isReels ? cap2 : '',
+      adType};
   });
 }
 </script>
