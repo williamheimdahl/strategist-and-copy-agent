@@ -47,6 +47,36 @@ app.get('/auth/callback', async (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'online' }));
 
+// ── PDF text extraction via Claude ────────────────────────────────────────────
+app.post('/api/extract-pdf', async (req, res) => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+  const { base64 } = req.body;
+  if (!base64) return res.status(400).json({ error: 'No base64 data provided' });
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 16000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: 'Extract all text from this document exactly as written. Return only the raw text content, no commentary.' }
+          ]
+        }]
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: data.error?.message || 'Extraction failed' });
+    res.json({ text: data.content?.[0]?.text || '' });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/claude', async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key not configured on server.' });
@@ -174,6 +204,12 @@ async function createGoogleDoc(docs, drive, folderId, title, concept, batchNum) 
     addParents: folderId,
     removeParents: 'root',
     fields: 'id, parents'
+  });
+
+  // Anyone with the link can edit
+  await drive.permissions.create({
+    fileId: docId,
+    requestBody: { role: 'writer', type: 'anyone' }
   });
 
   const requests = buildDocRequests(concept, batchNum);
