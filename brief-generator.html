@@ -479,33 +479,31 @@ function parse(text){
     }
 
     const copy1 = firstMatch([
-      /\*\*Facebook\/Instagram Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Ad Copy 2:|$)/i,
-      /\*\*Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Ad Copy 2:|$)/i,
-      /\*\*Primary Text 1:\*\*\n([\s\S]*?)(?=\*\*Primary Text 2:|$)/i,
-      /\*\*(?:Body )?Copy 1:\*\*\n([\s\S]*?)(?=\*\*(?:Body )?Copy 2:|$)/i,
+      /\*\*Primary Text 1:\*\*\n([\s\S]*?)(?=\*\*Primary Text 2:\*\*|$)/i,
+      /\*\*Facebook\/Instagram Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Ad Copy 2:\*\*|$)/i,
+      /\*\*Ad Copy 1:\*\*\n([\s\S]*?)(?=\*\*Ad Copy 2:\*\*|$)/i,
     ]);
     const copy2 = firstMatch([
-      /\*\*Facebook\/Instagram Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Headline|\*\*Headline|\*\*Instagram Caption|$)/i,
-      /\*\*Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
-      /\*\*Primary Text 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
-      /\*\*(?:Body )?Copy 2:\*\*\n([\s\S]*?)(?=\*\*(?:Facebook\/Instagram )?Headline|\*\*Instagram Caption|$)/i,
+      /\*\*Primary Text 2:\*\*\n([\s\S]*?)(?=\*\*Headline 1:\*\*|\*\*Facebook\/Instagram Headline 1:\*\*|\*\*Copywriter|\n---|$)/i,
+      /\*\*Facebook\/Instagram Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Headline 1:\*\*|\*\*Headline 1:\*\*|\*\*Copywriter|\n---|$)/i,
+      /\*\*Ad Copy 2:\*\*\n([\s\S]*?)(?=\*\*Headline 1:\*\*|\*\*Copywriter|\n---|$)/i,
     ]);
     const h1 = firstMatch([
-      /\*\*Facebook\/Instagram Headline 1:\*\*\n?([^\n*]+)/i,
       /\*\*Headline 1:\*\*\n?([^\n*]+)/i,
+      /\*\*Facebook\/Instagram Headline 1:\*\*\n?([^\n*]+)/i,
     ]);
     const h2 = firstMatch([
-      /\*\*Facebook\/Instagram Headline 2:\*\*\n?([^\n*]+)/i,
       /\*\*Headline 2:\*\*\n?([^\n*]+)/i,
+      /\*\*Facebook\/Instagram Headline 2:\*\*\n?([^\n*]+)/i,
     ]);
     const s1 = firstMatch([
-      /\*\*Facebook\/Instagram Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Subheadline 2:|$)/i,
-      /\*\*Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Subheadline 2:|$)/i,
-      /\*\*Link Description 1:\*\*\n([\s\S]*?)(?=\*\*Link Description 2:|$)/i,
+      /\*\*Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Subheadline 2:\*\*|$)/i,
+      /\*\*Facebook\/Instagram Subheadline 1:\*\*\n([\s\S]*?)(?=\*\*Facebook\/Instagram Subheadline 2:\*\*|$)/i,
+      /\*\*Link Description 1:\*\*\n([\s\S]*?)(?=\*\*Link Description 2:\*\*|$)/i,
     ]);
     const s2 = firstMatch([
-      /\*\*Facebook\/Instagram Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
       /\*\*Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
+      /\*\*Facebook\/Instagram Subheadline 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
       /\*\*Link Description 2:\*\*\n([\s\S]*?)(?=\*\*Copywriter|\n---|$)/i,
     ]);
     // Captions — Reels/Instagram only, but always parse so server.js can route correctly
