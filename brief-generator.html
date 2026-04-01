@@ -449,12 +449,17 @@ function parse(text){
         });
       }
     }
-    const mainBody=(block.match(/###\s+MAIN BODY\n([\s\S]*?)(?=\n\*\*Facebook\/Instagram|\n\*\*Instagram Caption|\n---\n|$)/i)||[])[1]?.trim()||'';
+    const mainBody=(block.match(/###\s+MAIN BODY\n([\s\S]*?)(?=\n\*\*(?:Primary Text|Facebook\/Instagram|Instagram Caption|Ad Copy)|\n---\n\n\*\*|$)/i)||[])[1]?.trim()||'';
 
-    // variations (static)
+    // Raw creation instructions — everything from first ### HOOK or ### VARIATION
+    // through to the Ad Copy / Primary Text section. Passed verbatim to the doc.
+    const rawCreationMatch = block.match(/(###\s+(?:HOOK|VARIATION)[\s\S]*?)(?=\n\*\*(?:Primary Text|Ad Copy|Facebook\/Instagram Ad Copy|Instagram Caption)|$)/i);
+    const rawCreation = rawCreationMatch ? rawCreationMatch[1].trim() : '';
+
+    // Keep structured variation parse for legacy fallback only
     const variations=[];
     if(!isVideo){
-      const rx=/###\s+VARIATION\s+(\d+)\s*—?\s*([^\n]*)\n([\s\S]*?)(?=###\s+VARIATION|\n\*\*Instagram Caption|\n\*\*Facebook\/Instagram|\n---\n\n\*\*|$)/gi;
+      const rx=/###\s+VARIATION\s+(\d+)\s*—?\s*([^\n]*)\n([\s\S]*?)(?=###\s+VARIATION|\n\*\*(?:Primary Text|Instagram Caption|Facebook\/Instagram)|\n---\n\n\*\*|$)/gi;
       let m;while((m=rx.exec(block))!==null){
         const vb=m[3];
         variations.push({
@@ -533,7 +538,7 @@ function parse(text){
     const avatar=tl.includes('stack collector')?'Stack Collector — obsessive optimizer, $200+/month on supplements':tl.includes('clean living')?'Clean Living Puzzle — does everything right but can\'t see results':t.includes('reddit')||t.includes('stack')?'Stack Collector — obsessive optimizer, 28-40':'Research-aware man 28-45 optimizing testosterone naturally';
     const adType=t.includes('inspired by')||t.includes('imitation')?'imitation':t.includes('iteration')||t.includes('based on winner')?'iteration':'ideation';
 
-    return{batchNum:bn++,name,format,platform,awareness,zone,testing,concept:concept_desc,desire,angles,adFormat:`${format} — ${platform}`,avatar,copywritersNote:note,isVideo,isReels,hooks,mainBody,variations,
+    return{batchNum:bn++,name,format,platform,awareness,zone,testing,concept:concept_desc,desire,angles,adFormat:`${format} — ${platform}`,avatar,copywritersNote:note,isVideo,isReels,hooks,mainBody,rawCreation,variations,
       // If primary copy is missing but captions were written, use captions as copy (copywriter labeled them as captions on a Feed static)
       copy1: copy1 || (!isReels && cap1 ? cap1 : ''),
       copy2: copy2 || (!isReels && cap2 ? cap2 : ''),
