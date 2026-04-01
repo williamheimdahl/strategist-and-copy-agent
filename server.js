@@ -190,6 +190,14 @@ async function createGoogleDoc(docs, drive, folderId, title, concept, batchNum) 
 }
 
 // ─── DOC CONTENT BUILDER ──────────────────────────────────────────────────────
+//
+// Outline strategy:
+//   HEADING_1 → doc title only (not in outline nav)
+//   HEADING_2 → the 3 section banners ONLY — these are the 3 outline items
+//   Everything else → NORMAL_TEXT with bold/size styling
+//   This gives the left nav exactly 3 jump links: Brief / Creation / Posting
+//
+// ──────────────────────────────────────────────────────────────────────────────
 
 function buildDocRequests(concept, batchNum) {
   const requests = [];
@@ -197,10 +205,12 @@ function buildDocRequests(concept, batchNum) {
   const isVideo = /video/i.test(concept.format || '');
   const isReels = /reels/i.test(concept.platform || '');
 
+  // ── Low-level primitives ────────────────────────────────────────────────────
+
   function ins(text) {
     requests.push({ insertText: { location: { index: cursor }, text } });
     cursor += text.length;
-    return cursor - text.length; // return start index
+    return cursor - text.length; // returns start index
   }
 
   function style(start, end, textStyle, fields) {
@@ -213,115 +223,125 @@ function buildDocRequests(concept, batchNum) {
     });
   }
 
-  function paraStyle(start, end, namedStyle) {
+  function paraStyle(start, end, paragraphStyle, fields) {
     requests.push({
       updateParagraphStyle: {
         range: { startIndex: start, endIndex: end },
-        paragraphStyle: { namedStyleType: namedStyle },
+        paragraphStyle,
+        fields
+      }
+    });
+  }
+
+  function namedStyle(start, end, namedStyleType) {
+    requests.push({
+      updateParagraphStyle: {
+        range: { startIndex: start, endIndex: end },
+        paragraphStyle: { namedStyleType },
         fields: 'namedStyleType'
       }
     });
   }
 
-  function h1(text) {
+  function blank() { ins('\n'); }
+
+  // ── High-level content helpers ──────────────────────────────────────────────
+
+  // Doc title — large, bold, HEADING_1 (shows in outline but below the 3 section headings visually)
+  function docTitle(text) {
     const start = cursor;
     ins(text + '\n');
-    paraStyle(start, cursor, 'HEADING_1');
+    namedStyle(start, cursor, 'HEADING_1');
+    style(start, cursor - 1, { fontSize: { magnitude: 20, unit: 'PT' }, bold: true }, 'fontSize,bold');
   }
 
-  function h2(text) {
+  // The 3 section banners — HEADING_2 so they appear as the outline nav items
+  function sectionHeading(text) {
     const start = cursor;
     ins(text + '\n');
-    paraStyle(start, cursor, 'HEADING_2');
+    namedStyle(start, cursor, 'HEADING_2');
+    // Override the visual style: white text on dark green background
+    style(start, cursor - 1, {
+      bold: true,
+      foregroundColor: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } },
+      fontSize: { magnitude: 13, unit: 'PT' }
+    }, 'bold,foregroundColor,fontSize');
+    paraStyle(start, cursor, {
+      shading: { backgroundColor: { color: { rgbColor: { red: 0.106, green: 0.369, blue: 0.271 } } } },
+      spaceAbove: { magnitude: 16, unit: 'PT' },
+      spaceBelow: { magnitude: 8, unit: 'PT' },
+      indentStart: { magnitude: 6, unit: 'PT' },
+      indentEnd: { magnitude: 6, unit: 'PT' }
+    }, 'shading,spaceAbove,spaceBelow,indentStart,indentEnd');
   }
 
-  function h3(text) {
+  // Sub-section label — bold, slightly larger, normal text (NOT a heading — won't clutter outline)
+  function subLabel(text) {
     const start = cursor;
     ins(text + '\n');
-    paraStyle(start, cursor, 'HEADING_3');
+    style(start, cursor - 1, {
+      bold: true,
+      fontSize: { magnitude: 11, unit: 'PT' },
+      foregroundColor: { color: { rgbColor: { red: 0.106, green: 0.369, blue: 0.271 } } }
+    }, 'bold,fontSize,foregroundColor');
+    paraStyle(start, cursor, {
+      spaceAbove: { magnitude: 10, unit: 'PT' },
+      spaceBelow: { magnitude: 2, unit: 'PT' }
+    }, 'spaceAbove,spaceBelow');
   }
 
+  // Item label — bold, inline with value on same line: "Label: value"
   function lv(label, value) {
     const start = cursor;
-    const labelEnd = cursor + label.length + 2; // "Label: "
+    const labelEnd = start + label.length + 2; // "Label: "
     ins(label + ': ' + (value || '') + '\n');
     style(start, labelEnd, { bold: true }, 'bold');
   }
 
+  // Hook label — bold uppercase for Hook A/B/C titles
+  function hookLabel(text) {
+    const start = cursor;
+    ins(text + '\n');
+    style(start, cursor - 1, {
+      bold: true,
+      fontSize: { magnitude: 10.5, unit: 'PT' },
+      foregroundColor: { color: { rgbColor: { red: 0.3, green: 0.3, blue: 0.3 } } }
+    }, 'bold,fontSize,foregroundColor');
+    paraStyle(start, cursor, {
+      spaceAbove: { magnitude: 8, unit: 'PT' },
+      spaceBelow: { magnitude: 2, unit: 'PT' }
+    }, 'spaceAbove,spaceBelow');
+  }
+
+  // Plain body text
   function body(text) {
     if (!text) return;
     ins((text || '') + '\n');
   }
 
-  function blank() { ins('\n'); }
+  // ── BUILD DOCUMENT ──────────────────────────────────────────────────────────
 
-  function divider() {
-    const start = cursor;
-    ins('\n');
-    requests.push({
-      updateParagraphStyle: {
-        range: { startIndex: start, endIndex: cursor },
-        paragraphStyle: {
-          borderBottom: {
-            color: { color: { rgbColor: { red: 0.8, green: 0.8, blue: 0.8 } } },
-            dashStyle: 'SOLID',
-            padding: { magnitude: 4, unit: 'PT' },
-            width: { magnitude: 1, unit: 'PT' }
-          }
-        },
-        fields: 'borderBottom'
-      }
-    });
-  }
-
-  function sectionHeader(text) {
-    const start = cursor;
-    ins('  ' + text + '  \n');
-    style(start, cursor, {
-      bold: true,
-      foregroundColor: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } },
-      fontSize: { magnitude: 13, unit: 'PT' }
-    }, 'bold,foregroundColor,fontSize');
-    requests.push({
-      updateParagraphStyle: {
-        range: { startIndex: start, endIndex: cursor },
-        paragraphStyle: {
-          shading: { backgroundColor: { color: { rgbColor: { red: 0.176, green: 0.416, blue: 0.31 } } } },
-          spaceAbove: { magnitude: 12, unit: 'PT' },
-          spaceBelow: { magnitude: 6, unit: 'PT' }
-        },
-        fields: 'shading,spaceAbove,spaceBelow'
-      }
-    });
-  }
-
-  // ── DOC TITLE ────────────────────────────────────────────────────────────────
-  h1(`BATCH #${batchNum} — ${concept.name}`);
-  const start = cursor - (`BATCH #${batchNum} — ${concept.name}`).length - 1;
-  style(start + 1, cursor - 1, {
-    fontSize: { magnitude: 18, unit: 'PT' },
-    bold: true
-  }, 'fontSize,bold');
+  // Doc title
+  docTitle(`BATCH #${batchNum} — ${concept.name}`);
   blank();
-
-  lv('Brand', 'Kleen Bio');
+  lv('Brand', concept.brand || 'Kleen Bio');
   lv('Format', mapAdFormat(concept.format));
   lv('Platform', concept.platform || '');
   lv('Awareness', concept.awareness || '');
   lv('Zone', concept.zone || '');
   blank();
 
-  // ── SECTION 1: BATCH BRIEF ───────────────────────────────────────────────────
-  sectionHeader('01 — BATCH BRIEF');
+  // ── SECTION 1 ───────────────────────────────────────────────────────────────
+  sectionHeading('01 — BATCH BRIEF');
   blank();
 
-  h2('STRATEGY');
+  subLabel('STRATEGY');
   lv('Avatar', concept.avatar || '');
   lv('Mass Desire', concept.desire || '');
   lv('Awareness Level', concept.awareness || '');
   blank();
 
-  h2('CREATIVE STRATEGY');
+  subLabel('CREATIVE STRATEGY');
   lv('Angle(s)', concept.angles || '');
   lv('Concept', concept.concept || '');
   lv('Emotional Zone', concept.zone || '');
@@ -329,31 +349,31 @@ function buildDocRequests(concept, batchNum) {
   lv('Ad Type', mapAdType(concept.adType));
   blank();
 
-  h2('BREAKTHROUGH MEMO');
-  h3('Why we\'re making it');
+  subLabel('BREAKTHROUGH MEMO');
+  hookLabel('Why we\'re making it');
   body(concept.testing || '');
   blank();
-  h3('What it\'s going to say');
+  hookLabel('What it\'s going to say');
   body(concept.concept || '');
   blank();
-  h3('How it\'s going to execute');
+  hookLabel('How it\'s going to execute');
   body(`${mapAdFormat(concept.format)} on ${concept.platform || ''}`);
   blank();
 
-  h2('COPYWRITER\'S NOTE');
+  subLabel('COPYWRITER\'S NOTE');
   body(concept.copywritersNote || '');
   blank();
 
-  // ── SECTION 2: CREATION INSTRUCTIONS ─────────────────────────────────────────
-  sectionHeader(`02 — CREATION INSTRUCTIONS — ${isVideo ? 'VIDEO EDITOR' : 'GRAPHIC DESIGNER'}`);
+  // ── SECTION 2 ───────────────────────────────────────────────────────────────
+  sectionHeading(`02 — CREATION INSTRUCTIONS — ${isVideo ? 'VIDEO EDITOR' : 'GRAPHIC DESIGNER'}`);
   blank();
 
   if (isVideo) {
-    h2('HOOKS — 3 variations, test simultaneously');
+    subLabel('HOOKS — 3 variations, test simultaneously');
     blank();
 
     for (const hook of (concept.hooks || [])) {
-      h3(hook.label || 'Hook');
+      hookLabel(hook.label || 'Hook');
       lv('Voiceover', hook.vo || '');
       blank();
       lv('Frame 1 Visual', hook.visual || '');
@@ -362,21 +382,21 @@ function buildDocRequests(concept, batchNum) {
       blank();
     }
 
-    h2('MAIN BODY');
+    subLabel('MAIN BODY');
     body(concept.mainBody || '');
     blank();
 
   } else {
-    h2('VARIATIONS');
+    subLabel('VARIATIONS');
     blank();
 
     for (const v of (concept.variations || [])) {
-      h3(`VARIATION ${v.num}${v.label ? ' — ' + v.label : ''}`);
+      hookLabel(`VARIATION ${v.num}${v.label ? ' — ' + v.label : ''}`);
       lv('Headline', v.headline || '');
       lv('Subheadline', v.sub || '');
       if (v.body) lv('Body Text', v.body);
       blank();
-      h3('Visual Direction');
+      hookLabel('Visual Direction');
       body(v.visual || '');
       blank();
       lv('Why this works', v.why || '');
@@ -384,11 +404,11 @@ function buildDocRequests(concept, batchNum) {
     }
   }
 
-  // ── SECTION 3: FACEBOOK POSTING ───────────────────────────────────────────────
-  sectionHeader('03 — FACEBOOK POSTING — MEDIA BUYER');
+  // ── SECTION 3 ───────────────────────────────────────────────────────────────
+  sectionHeading('03 — FACEBOOK POSTING — MEDIA BUYER');
   blank();
 
-  h2('POSTING DETAILS');
+  subLabel('POSTING DETAILS');
   lv('Frame Link', '');
   lv('Page Name', '');
   lv('Landing Page', '');
@@ -396,33 +416,33 @@ function buildDocRequests(concept, batchNum) {
   blank();
 
   if (isReels) {
-    h2('INSTAGRAM CAPTIONS');
-    h3('Caption 1 — Long');
+    subLabel('INSTAGRAM CAPTIONS');
+    hookLabel('Caption 1 — Long');
     body(concept.caption1 || '');
     blank();
-    h3('Caption 2 — Short');
+    hookLabel('Caption 2 — Short');
     body(concept.caption2 || '');
 
   } else {
-    h2('PRIMARY TEXT (Body Copy)');
-    h3('Variation 1');
+    subLabel('PRIMARY TEXT (Body Copy)');
+    hookLabel('Variation 1');
     body(concept.copy1 || '');
     blank();
-    h3('Variation 2');
+    hookLabel('Variation 2');
     body(concept.copy2 || '');
     blank();
 
-    h2('HEADLINES');
+    subLabel('HEADLINES');
     lv('Headline 1', concept.headline1 || '');
     lv('Headline 2', concept.headline2 || '');
     blank();
 
-    h2('SUBHEADLINES (Link Description)');
+    subLabel('SUBHEADLINES (Link Description)');
     lv('Subheadline 1', concept.sub1 || '');
     lv('Subheadline 2', concept.sub2 || '');
     blank();
 
-    h2('LANDING PAGE');
+    subLabel('LANDING PAGE');
     lv('Landing Page', '');
   }
 
