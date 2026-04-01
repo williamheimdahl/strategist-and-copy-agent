@@ -214,6 +214,7 @@ function buildDocRequests(concept, batchNum) {
   }
 
   function style(start, end, textStyle, fields) {
+    if (end <= start) return;
     requests.push({
       updateTextStyle: {
         range: { startIndex: start, endIndex: end },
@@ -224,6 +225,7 @@ function buildDocRequests(concept, batchNum) {
   }
 
   function paraStyle(start, end, paragraphStyle, fields) {
+    if (end <= start) return;
     requests.push({
       updateParagraphStyle: {
         range: { startIndex: start, endIndex: end },
