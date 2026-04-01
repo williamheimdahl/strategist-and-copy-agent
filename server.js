@@ -96,8 +96,6 @@ async function getNextBatchNumber(sheets, spreadsheetId) {
   return maxNum + 1;
 }
 
-// ─── AD FORMAT + TYPE MAPPING ─────────────────────────────────────────────────
-
 function mapAdFormat(format) {
   const f = (format || '').toLowerCase();
   if (f.includes('static')) return '🖼️ Static';
@@ -114,7 +112,7 @@ function mapAdType(adType) {
   return '💡 Ideation';
 }
 
-// ─── WRITE SPREADSHEET ROW ────────────────────────────────────────────────────
+// ─── SPREADSHEET WRITES ───────────────────────────────────────────────────────
 
 async function writeSpreadsheetRow(sheets, spreadsheetId, batchNum, concept, docUrl) {
   const response = await sheets.spreadsheets.values.get({
@@ -124,46 +122,39 @@ async function writeSpreadsheetRow(sheets, spreadsheetId, batchNum, concept, doc
   const rows = response.data.values || [];
   const nextRow = rows.length + 1;
 
-  const values = [[
-    `BATCH #${batchNum}`,
-    'Working',
-    'Williams AI',
-    concept.name,
-    concept.desire,
-    concept.angles,
-    concept.testing,
-    concept.awareness,
-    mapAdFormat(concept.format),
-    mapAdType(concept.adType),
-    '',
-    docUrl
-  ]];
-
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `'Creative Roadmap'!A${nextRow}`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values }
+    requestBody: {
+      values: [[
+        `BATCH #${batchNum}`,
+        'Working',
+        'Williams AI',
+        concept.name,
+        concept.desire,
+        concept.angles,
+        concept.testing,
+        concept.awareness,
+        mapAdFormat(concept.format),
+        mapAdType(concept.adType),
+        '',
+        docUrl
+      ]]
+    }
   });
 }
 
-// ─── WRITE DESIRE TO DESIRES SHEET ───────────────────────────────────────────
-
 async function writeDesire(sheets, spreadsheetId, desire) {
   if (!desire) return;
-  // Read existing desires
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: "'Desires'!A:A"
   });
   const rows = response.data.values || [];
-  // Find first empty row
-  const nextRow = rows.length + 1;
-
-  // Check desire doesn't already exist
   const existing = rows.map(r => (r[0] || '').toString().trim().toLowerCase());
-  if (existing.includes(desire.trim().toLowerCase())) return; // skip duplicate
-
+  if (existing.includes(desire.trim().toLowerCase())) return;
+  const nextRow = rows.length + 1;
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `'Desires'!A${nextRow}`,
@@ -172,14 +163,12 @@ async function writeDesire(sheets, spreadsheetId, desire) {
   });
 }
 
-// ─── CREATE GOOGLE DOC WITH TABS ──────────────────────────────────────────────
+// ─── BUILD GOOGLE DOC ─────────────────────────────────────────────────────────
 
 async function createGoogleDoc(docs, drive, folderId, title, concept, batchNum) {
-  // Create empty doc
   const doc = await docs.documents.create({ requestBody: { title } });
   const docId = doc.data.documentId;
 
-  // Move to Batches folder
   await drive.files.update({
     fileId: docId,
     addParents: folderId,
@@ -187,289 +176,257 @@ async function createGoogleDoc(docs, drive, folderId, title, concept, batchNum) 
     fields: 'id, parents'
   });
 
-  // Create the 3 tabs and populate them
-  await buildDocWithTabs(docs, docId, concept, batchNum);
+  const requests = buildDocRequests(concept, batchNum);
+
+  // Send in batches of 50 to avoid limits
+  for (let i = 0; i < requests.length; i += 50) {
+    await docs.documents.batchUpdate({
+      documentId: docId,
+      requestBody: { requests: requests.slice(i, i + 50) }
+    });
+  }
 
   return `https://docs.google.com/document/d/${docId}/edit`;
 }
 
-// ─── BUILD DOC WITH TABS ──────────────────────────────────────────────────────
+// ─── DOC CONTENT BUILDER ──────────────────────────────────────────────────────
 
-async function buildDocWithTabs(docs, docId, concept, batchNum) {
-  // Step 1: Create tabs 2 and 3 (tab 1 exists by default)
-  // Get current doc to find default tab ID
-  const docData = await docs.documents.get({ documentId: docId });
-  const defaultTabId = docData.data.tabs?.[0]?.tabProperties?.tabId || null;
+function buildDocRequests(concept, batchNum) {
+  const requests = [];
+  let cursor = 1;
+  const isVideo = /video/i.test(concept.format || '');
+  const isReels = /reels/i.test(concept.platform || '');
 
-  // Create tab 2: Creation Instructions
-  const tab2Res = await docs.documents.batchUpdate({
-    documentId: docId,
-    requestBody: {
-      requests: [{
-        createTab: {
-          insertionIndex: 1,
-          tabProperties: { title: 'Creation Instructions' }
-        }
-      }]
-    }
-  });
-
-  // Create tab 3: Facebook Posting
-  const tab3Res = await docs.documents.batchUpdate({
-    documentId: docId,
-    requestBody: {
-      requests: [{
-        createTab: {
-          insertionIndex: 2,
-          tabProperties: { title: 'Facebook Posting' }
-        }
-      }]
-    }
-  });
-
-  // Re-fetch doc to get all tab IDs
-  const docData2 = await docs.documents.get({ documentId: docId });
-  const tabs = docData2.data.tabs || [];
-
-  // Find tab IDs by title (tabs are in order)
-  let briefTabId = null, creationTabId = null, postingTabId = null;
-  for (const tab of tabs) {
-    const title = tab.tabProperties?.title || '';
-    const id = tab.tabProperties?.tabId;
-    if (title === 'Tab 1' || title === 'Untitled' || tabs.indexOf(tab) === 0) briefTabId = id;
-    if (title === 'Creation Instructions') creationTabId = id;
-    if (title === 'Facebook Posting') postingTabId = id;
+  function ins(text) {
+    requests.push({ insertText: { location: { index: cursor }, text } });
+    cursor += text.length;
+    return cursor - text.length; // return start index
   }
 
-  // Rename default tab to "Batch Brief"
-  if (briefTabId) {
-    await docs.documents.batchUpdate({
-      documentId: docId,
-      requestBody: {
-        requests: [{
-          updateTabProperties: {
-            tabProperties: { tabId: briefTabId, title: 'Batch Brief' },
-            fields: 'title'
-          }
-        }]
+  function style(start, end, textStyle, fields) {
+    requests.push({
+      updateTextStyle: {
+        range: { startIndex: start, endIndex: end },
+        textStyle,
+        fields
       }
     });
   }
 
-  // Populate all three tabs
-  const allRequests = [
-    ...buildBriefTab(concept, batchNum, briefTabId),
-    ...buildCreationTab(concept, batchNum, creationTabId),
-    ...buildPostingTab(concept, batchNum, postingTabId)
-  ];
+  function paraStyle(start, end, namedStyle) {
+    requests.push({
+      updateParagraphStyle: {
+        range: { startIndex: start, endIndex: end },
+        paragraphStyle: { namedStyleType: namedStyle },
+        fields: 'namedStyleType'
+      }
+    });
+  }
 
-  if (allRequests.length > 0) {
-    // Split into batches of 50 to avoid API limits
-    for (let i = 0; i < allRequests.length; i += 50) {
-      await docs.documents.batchUpdate({
-        documentId: docId,
-        requestBody: { requests: allRequests.slice(i, i + 50) }
-      });
+  function h1(text) {
+    const start = cursor;
+    ins(text + '\n');
+    paraStyle(start, cursor, 'HEADING_1');
+  }
+
+  function h2(text) {
+    const start = cursor;
+    ins(text + '\n');
+    paraStyle(start, cursor, 'HEADING_2');
+  }
+
+  function h3(text) {
+    const start = cursor;
+    ins(text + '\n');
+    paraStyle(start, cursor, 'HEADING_3');
+  }
+
+  function lv(label, value) {
+    const start = cursor;
+    const labelEnd = cursor + label.length + 2; // "Label: "
+    ins(label + ': ' + (value || '') + '\n');
+    style(start, labelEnd, { bold: true }, 'bold');
+  }
+
+  function body(text) {
+    if (!text) return;
+    ins((text || '') + '\n');
+  }
+
+  function blank() { ins('\n'); }
+
+  function divider() {
+    const start = cursor;
+    ins('\n');
+    requests.push({
+      updateParagraphStyle: {
+        range: { startIndex: start, endIndex: cursor },
+        paragraphStyle: {
+          borderBottom: {
+            color: { color: { rgbColor: { red: 0.8, green: 0.8, blue: 0.8 } } },
+            dashStyle: 'SOLID',
+            padding: { magnitude: 4, unit: 'PT' },
+            width: { magnitude: 1, unit: 'PT' }
+          }
+        },
+        fields: 'borderBottom'
+      }
+    });
+  }
+
+  function sectionHeader(text) {
+    const start = cursor;
+    ins('  ' + text + '  \n');
+    style(start, cursor, {
+      bold: true,
+      foregroundColor: { color: { rgbColor: { red: 1, green: 1, blue: 1 } } },
+      fontSize: { magnitude: 13, unit: 'PT' }
+    }, 'bold,foregroundColor,fontSize');
+    requests.push({
+      updateParagraphStyle: {
+        range: { startIndex: start, endIndex: cursor },
+        paragraphStyle: {
+          shading: { backgroundColor: { color: { rgbColor: { red: 0.176, green: 0.416, blue: 0.31 } } } },
+          spaceAbove: { magnitude: 12, unit: 'PT' },
+          spaceBelow: { magnitude: 6, unit: 'PT' }
+        },
+        fields: 'shading,spaceAbove,spaceBelow'
+      }
+    });
+  }
+
+  // ── DOC TITLE ────────────────────────────────────────────────────────────────
+  h1(`BATCH #${batchNum} — ${concept.name}`);
+  const start = cursor - (`BATCH #${batchNum} — ${concept.name}`).length - 1;
+  style(start + 1, cursor - 1, {
+    fontSize: { magnitude: 18, unit: 'PT' },
+    bold: true
+  }, 'fontSize,bold');
+  blank();
+
+  lv('Brand', 'Kleen Bio');
+  lv('Format', mapAdFormat(concept.format));
+  lv('Platform', concept.platform || '');
+  lv('Awareness', concept.awareness || '');
+  lv('Zone', concept.zone || '');
+  blank();
+
+  // ── SECTION 1: BATCH BRIEF ───────────────────────────────────────────────────
+  sectionHeader('01 — BATCH BRIEF');
+  blank();
+
+  h2('STRATEGY');
+  lv('Avatar', concept.avatar || '');
+  lv('Mass Desire', concept.desire || '');
+  lv('Awareness Level', concept.awareness || '');
+  blank();
+
+  h2('CREATIVE STRATEGY');
+  lv('Angle(s)', concept.angles || '');
+  lv('Concept', concept.concept || '');
+  lv('Emotional Zone', concept.zone || '');
+  lv('Testing Method', concept.testing || '');
+  lv('Ad Type', mapAdType(concept.adType));
+  blank();
+
+  h2('BREAKTHROUGH MEMO');
+  h3('Why we\'re making it');
+  body(concept.testing || '');
+  blank();
+  h3('What it\'s going to say');
+  body(concept.concept || '');
+  blank();
+  h3('How it\'s going to execute');
+  body(`${mapAdFormat(concept.format)} on ${concept.platform || ''}`);
+  blank();
+
+  h2('COPYWRITER\'S NOTE');
+  body(concept.copywritersNote || '');
+  blank();
+
+  // ── SECTION 2: CREATION INSTRUCTIONS ─────────────────────────────────────────
+  sectionHeader(`02 — CREATION INSTRUCTIONS — ${isVideo ? 'VIDEO EDITOR' : 'GRAPHIC DESIGNER'}`);
+  blank();
+
+  if (isVideo) {
+    h2('HOOKS — 3 variations, test simultaneously');
+    blank();
+
+    for (const hook of (concept.hooks || [])) {
+      h3(hook.label || 'Hook');
+      lv('Voiceover', hook.vo || '');
+      blank();
+      lv('Frame 1 Visual', hook.visual || '');
+      blank();
+      lv('Rationale', hook.rationale || '');
+      blank();
+    }
+
+    h2('MAIN BODY');
+    body(concept.mainBody || '');
+    blank();
+
+  } else {
+    h2('VARIATIONS');
+    blank();
+
+    for (const v of (concept.variations || [])) {
+      h3(`VARIATION ${v.num}${v.label ? ' — ' + v.label : ''}`);
+      lv('Headline', v.headline || '');
+      lv('Subheadline', v.sub || '');
+      if (v.body) lv('Body Text', v.body);
+      blank();
+      h3('Visual Direction');
+      body(v.visual || '');
+      blank();
+      lv('Why this works', v.why || '');
+      blank();
     }
   }
-}
 
-// ─── TAB CONTENT BUILDERS ─────────────────────────────────────────────────────
+  // ── SECTION 3: FACEBOOK POSTING ───────────────────────────────────────────────
+  sectionHeader('03 — FACEBOOK POSTING — MEDIA BUYER');
+  blank();
 
-function tabInsert(tabId, index, text) {
-  return { insertText: { location: { tabId, index }, text } };
-}
+  h2('POSTING DETAILS');
+  lv('Frame Link', '');
+  lv('Page Name', '');
+  lv('Landing Page', '');
+  lv('Adset Name', '');
+  blank();
 
-function tabStyle(tabId, start, end, style, fields) {
-  return { updateTextStyle: { range: { tabId, startIndex: start, endIndex: end }, textStyle: style, fields } };
-}
+  if (isReels) {
+    h2('INSTAGRAM CAPTIONS');
+    h3('Caption 1 — Long');
+    body(concept.caption1 || '');
+    blank();
+    h3('Caption 2 — Short');
+    body(concept.caption2 || '');
 
-function tabParaStyle(tabId, start, end, namedStyle) {
-  return {
-    updateParagraphStyle: {
-      range: { tabId, startIndex: start, endIndex: end },
-      paragraphStyle: { namedStyleType: namedStyle },
-      fields: 'namedStyleType'
-    }
-  };
-}
+  } else {
+    h2('PRIMARY TEXT (Body Copy)');
+    h3('Variation 1');
+    body(concept.copy1 || '');
+    blank();
+    h3('Variation 2');
+    body(concept.copy2 || '');
+    blank();
 
-function buildTabContent(tabId, sections) {
-  // sections = array of { type: 'heading1'|'heading2'|'heading3'|'label-value'|'body'|'blank', text, value }
-  const requests = [];
-  let cursor = 1;
+    h2('HEADLINES');
+    lv('Headline 1', concept.headline1 || '');
+    lv('Headline 2', concept.headline2 || '');
+    blank();
 
-  for (const s of sections) {
-    if (s.type === 'heading1') {
-      const text = s.text + '\n';
-      requests.push(tabInsert(tabId, cursor, text));
-      requests.push(tabParaStyle(tabId, cursor, cursor + text.length, 'HEADING_1'));
-      requests.push(tabStyle(tabId, cursor, cursor + text.length - 1, { bold: true, fontSize: { magnitude: 14, unit: 'PT' } }, 'bold,fontSize'));
-      cursor += text.length;
-    } else if (s.type === 'heading2') {
-      const text = s.text + '\n';
-      requests.push(tabInsert(tabId, cursor, text));
-      requests.push(tabParaStyle(tabId, cursor, cursor + text.length, 'HEADING_2'));
-      cursor += text.length;
-    } else if (s.type === 'heading3') {
-      const text = s.text + '\n';
-      requests.push(tabInsert(tabId, cursor, text));
-      requests.push(tabParaStyle(tabId, cursor, cursor + text.length, 'HEADING_3'));
-      cursor += text.length;
-    } else if (s.type === 'label-value') {
-      const label = s.text + ': ';
-      const value = (s.value || '') + '\n';
-      const full = label + value;
-      requests.push(tabInsert(tabId, cursor, full));
-      requests.push(tabStyle(tabId, cursor, cursor + label.length, { bold: true }, 'bold'));
-      cursor += full.length;
-    } else if (s.type === 'body') {
-      const text = (s.text || '') + '\n';
-      requests.push(tabInsert(tabId, cursor, text));
-      cursor += text.length;
-    } else if (s.type === 'blank') {
-      requests.push(tabInsert(tabId, cursor, '\n'));
-      cursor += 1;
-    }
+    h2('SUBHEADLINES (Link Description)');
+    lv('Subheadline 1', concept.sub1 || '');
+    lv('Subheadline 2', concept.sub2 || '');
+    blank();
+
+    h2('LANDING PAGE');
+    lv('Landing Page', '');
   }
 
   return requests;
-}
-
-function buildBriefTab(concept, batchNum, tabId) {
-  if (!tabId) return [];
-  const isVideo = /video/i.test(concept.format || '');
-  const sections = [
-    { type: 'heading1', text: `BATCH #${batchNum} — ${concept.name}` },
-    { type: 'blank' },
-
-    { type: 'heading2', text: 'PART 1: STRATEGY' },
-    { type: 'label-value', text: 'Brand', value: 'Kleen Bio' },
-    { type: 'label-value', text: 'Batch', value: `#${batchNum}` },
-    { type: 'label-value', text: 'Date', value: new Date().toLocaleDateString('en-GB') },
-    { type: 'blank' },
-
-    { type: 'heading3', text: 'TARGET' },
-    { type: 'label-value', text: 'Avatar', value: concept.avatar || '' },
-    { type: 'label-value', text: 'Mass Desire', value: concept.desire || '' },
-    { type: 'label-value', text: 'Awareness Level', value: concept.awareness || '' },
-    { type: 'blank' },
-
-    { type: 'heading3', text: 'CREATIVE STRATEGY' },
-    { type: 'label-value', text: 'Angle(s)', value: concept.angles || '' },
-    { type: 'label-value', text: 'Concept', value: concept.concept || '' },
-    { type: 'label-value', text: 'Emotional Zone', value: concept.zone || '' },
-    { type: 'label-value', text: 'Testing Method', value: concept.testing || '' },
-    { type: 'label-value', text: 'New or Variation', value: mapAdType(concept.adType) },
-    { type: 'blank' },
-
-    { type: 'heading3', text: 'BREAKTHROUGH MEMO' },
-    { type: 'label-value', text: 'Why we\'re making it', value: concept.testing || '' },
-    { type: 'label-value', text: 'What it\'s going to say', value: concept.concept || '' },
-    { type: 'label-value', text: 'How it\'s going to execute', value: `${concept.format} — ${concept.platform}` },
-    { type: 'blank' },
-
-    { type: 'heading2', text: 'CLASSIFICATION' },
-    { type: 'label-value', text: 'Format', value: mapAdFormat(concept.format) },
-    { type: 'label-value', text: 'Ad Type', value: mapAdType(concept.adType) },
-    { type: 'label-value', text: 'Platform', value: concept.platform || '' },
-    { type: 'blank' },
-
-    { type: 'heading3', text: 'COPYWRITER\'S NOTE' },
-    { type: 'body', text: concept.copywritersNote || '' },
-  ];
-  return buildTabContent(tabId, sections);
-}
-
-function buildCreationTab(concept, batchNum, tabId) {
-  if (!tabId) return [];
-  const isVideo = /video/i.test(concept.format || '');
-  const sections = [
-    { type: 'heading1', text: `BATCH #${batchNum} — ${concept.name}` },
-    { type: 'label-value', text: 'For', value: isVideo ? 'Video Editor' : 'Graphic Designer' },
-    { type: 'label-value', text: 'Platform', value: concept.platform || '' },
-    { type: 'label-value', text: 'Format', value: mapAdFormat(concept.format) },
-    { type: 'blank' },
-  ];
-
-  if (isVideo) {
-    sections.push({ type: 'heading2', text: 'HOOKS — 3 variations, test simultaneously' });
-    sections.push({ type: 'blank' });
-
-    for (const hook of (concept.hooks || [])) {
-      sections.push({ type: 'heading3', text: hook.label || 'Hook' });
-      sections.push({ type: 'label-value', text: 'Voiceover', value: hook.vo || '' });
-      sections.push({ type: 'label-value', text: 'Frame 1 Visual', value: hook.visual || '' });
-      sections.push({ type: 'label-value', text: 'Rationale', value: hook.rationale || '' });
-      sections.push({ type: 'blank' });
-    }
-
-    sections.push({ type: 'heading2', text: 'MAIN BODY' });
-    sections.push({ type: 'body', text: concept.mainBody || '' });
-
-  } else {
-    sections.push({ type: 'heading2', text: 'VARIATIONS' });
-    sections.push({ type: 'blank' });
-
-    for (const v of (concept.variations || [])) {
-      sections.push({ type: 'heading3', text: `VARIATION ${v.num} — ${v.label || ''}` });
-      sections.push({ type: 'label-value', text: 'Headline', value: v.headline || '' });
-      sections.push({ type: 'label-value', text: 'Subheadline', value: v.sub || '' });
-      if (v.body) sections.push({ type: 'label-value', text: 'Body Text', value: v.body });
-      sections.push({ type: 'label-value', text: 'Visual Direction', value: v.visual || '' });
-      sections.push({ type: 'label-value', text: 'Why this works', value: v.why || '' });
-      sections.push({ type: 'blank' });
-    }
-  }
-
-  return buildTabContent(tabId, sections);
-}
-
-function buildPostingTab(concept, batchNum, tabId) {
-  if (!tabId) return [];
-  const isReels = /reels/i.test(concept.platform || '');
-  const sections = [
-    { type: 'heading1', text: `BATCH #${batchNum} — ${concept.name}` },
-    { type: 'blank' },
-    { type: 'heading2', text: 'POSTING DETAILS' },
-    { type: 'label-value', text: 'Frame Link', value: '' },
-    { type: 'label-value', text: 'Page Name', value: '' },
-    { type: 'label-value', text: 'Landing Page', value: '' },
-    { type: 'label-value', text: 'Adset Name', value: '' },
-    { type: 'blank' },
-  ];
-
-  if (isReels) {
-    sections.push({ type: 'heading2', text: 'INSTAGRAM CAPTIONS' });
-    sections.push({ type: 'heading3', text: 'Caption 1 (Long)' });
-    sections.push({ type: 'body', text: concept.caption1 || '' });
-    sections.push({ type: 'blank' });
-    sections.push({ type: 'heading3', text: 'Caption 2 (Short)' });
-    sections.push({ type: 'body', text: concept.caption2 || '' });
-  } else {
-    sections.push({ type: 'heading2', text: 'PRIMARY TEXT (Body Copy)' });
-    sections.push({ type: 'heading3', text: 'Variation 1' });
-    sections.push({ type: 'body', text: concept.copy1 || '' });
-    sections.push({ type: 'blank' });
-    sections.push({ type: 'heading3', text: 'Variation 2' });
-    sections.push({ type: 'body', text: concept.copy2 || '' });
-    sections.push({ type: 'blank' });
-
-    sections.push({ type: 'heading2', text: 'HEADLINES' });
-    sections.push({ type: 'label-value', text: 'Headline 1', value: concept.headline1 || '' });
-    sections.push({ type: 'label-value', text: 'Headline 2', value: concept.headline2 || '' });
-    sections.push({ type: 'blank' });
-
-    sections.push({ type: 'heading2', text: 'SUBHEADLINES (Link Description)' });
-    sections.push({ type: 'label-value', text: 'Subheadline 1', value: concept.sub1 || '' });
-    sections.push({ type: 'label-value', text: 'Subheadline 2', value: concept.sub2 || '' });
-    sections.push({ type: 'blank' });
-
-    sections.push({ type: 'heading2', text: 'LANDING PAGE' });
-    sections.push({ type: 'label-value', text: 'Landing Page', value: '' });
-  }
-
-  return buildTabContent(tabId, sections);
 }
 
 // ─── MAIN GENERATE ENDPOINT ───────────────────────────────────────────────────
@@ -498,13 +455,8 @@ app.post('/api/generate', async (req, res) => {
       const brandName = brand || 'Kleen Bio';
       const title = `Batch #${batchNum} — ${concept.name} — ${brandName}`;
 
-      // Create Google Doc with tabs
       const docUrl = await createGoogleDoc(docs, drive, folderId, title, concept, batchNum);
-
-      // Write row to Creative Roadmap
       await writeSpreadsheetRow(sheets, spreadsheetId, batchNum, concept, docUrl);
-
-      // Write desire to Desires sheet (skip duplicates)
       await writeDesire(sheets, spreadsheetId, concept.desire);
 
       results.push({ batchNum, name: concept.name, docUrl });
