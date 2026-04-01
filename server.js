@@ -290,22 +290,26 @@ function buildDocRequests(concept, batchNum) {
     }, 'spaceAbove,spaceBelow');
   }
 
-  // Item label — bold, inline with value on same line: "Label: value"
+  // Item label — bold label + black value on same line: "Label: value"
   function lv(label, value) {
     const start = cursor;
     const labelEnd = start + label.length + 2; // "Label: "
     ins(label + ': ' + (value || '') + '\n');
     style(start, labelEnd, { bold: true }, 'bold');
+    // Force value portion to black explicitly
+    style(labelEnd, cursor - 1, {
+      foregroundColor: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } }
+    }, 'foregroundColor');
   }
 
-  // Hook label — bold uppercase for Hook A/B/C titles
+  // Hook label — bold dark label for Hook A/B/C, visual direction, etc.
   function hookLabel(text) {
     const start = cursor;
     ins(text + '\n');
     style(start, cursor - 1, {
       bold: true,
       fontSize: { magnitude: 10.5, unit: 'PT' },
-      foregroundColor: { color: { rgbColor: { red: 0.3, green: 0.3, blue: 0.3 } } }
+      foregroundColor: { color: { rgbColor: { red: 0.15, green: 0.15, blue: 0.15 } } }
     }, 'bold,fontSize,foregroundColor');
     paraStyle(start, cursor, {
       spaceAbove: { magnitude: 8, unit: 'PT' },
@@ -313,10 +317,34 @@ function buildDocRequests(concept, batchNum) {
     }, 'spaceAbove,spaceBelow');
   }
 
-  // Plain body text
+  // Variation block header — used in Section 3 for Variation 1 / Variation 2 / Caption 1 / Caption 2
+  // Light grey pill background so the media buyer can immediately see where one ends and the next begins
+  function variationBlock(text) {
+    const start = cursor;
+    ins(text + '\n');
+    style(start, cursor - 1, {
+      bold: true,
+      fontSize: { magnitude: 11, unit: 'PT' },
+      foregroundColor: { color: { rgbColor: { red: 0.1, green: 0.1, blue: 0.1 } } }
+    }, 'bold,fontSize,foregroundColor');
+    paraStyle(start, cursor, {
+      shading: { backgroundColor: { color: { rgbColor: { red: 0.918, green: 0.918, blue: 0.918 } } } },
+      spaceAbove: { magnitude: 14, unit: 'PT' },
+      spaceBelow: { magnitude: 6, unit: 'PT' },
+      indentStart: { magnitude: 6, unit: 'PT' },
+      indentEnd: { magnitude: 6, unit: 'PT' }
+    }, 'shading,spaceAbove,spaceBelow,indentStart,indentEnd');
+  }
+
+  // Plain body text — explicitly black so it never inherits grey from the Docs theme
   function body(text) {
     if (!text) return;
+    const start = cursor;
     ins((text || '') + '\n');
+    style(start, cursor - 1, {
+      foregroundColor: { color: { rgbColor: { red: 0, green: 0, blue: 0 } } },
+      fontSize: { magnitude: 10.5, unit: 'PT' }
+    }, 'foregroundColor,fontSize');
   }
 
   // ── BUILD DOCUMENT ──────────────────────────────────────────────────────────
@@ -417,18 +445,18 @@ function buildDocRequests(concept, batchNum) {
 
   if (isReels) {
     subLabel('INSTAGRAM CAPTIONS');
-    hookLabel('Caption 1 — Long');
+    variationBlock('CAPTION 1 — LONG');
     body(concept.caption1 || '');
     blank();
-    hookLabel('Caption 2 — Short');
+    variationBlock('CAPTION 2 — SHORT');
     body(concept.caption2 || '');
 
   } else {
     subLabel('PRIMARY TEXT (Body Copy)');
-    hookLabel('Variation 1');
+    variationBlock('VARIATION 1');
     body(concept.copy1 || '');
     blank();
-    hookLabel('Variation 2');
+    variationBlock('VARIATION 2');
     body(concept.copy2 || '');
     blank();
 
